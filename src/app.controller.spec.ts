@@ -15,8 +15,16 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return JSON response with status 200', () => {
+      const result = appController.getHello() as {
+        statusCode: number;
+        message: string;
+        data: { timestamp: string };
+      };
+      expect(result).toHaveProperty('statusCode', 200);
+      expect(result).toHaveProperty('message', 'Hello World2!');
+      expect(result).toHaveProperty('data');
+      expect(result.data).toHaveProperty('timestamp');
     });
   });
 });
