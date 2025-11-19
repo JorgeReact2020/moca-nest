@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { json } from 'stream/consumers';
 
 @Injectable()
 export class AppService {
@@ -9,7 +8,7 @@ export class AppService {
       message: 'Hello World2!',
       data: {
         timestamp: new Date().toISOString(),
-      }
+      },
     };
   }
 }

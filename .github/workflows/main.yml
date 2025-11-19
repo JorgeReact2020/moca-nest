@@ -6,14 +6,33 @@ on:
       - main
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
       - name: SSH and deploy to EC2
-        uses: appleboy/ssh-action@v0.1.9
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -21,8 +40,42 @@ jobs:
           script: |
             cd ~/moca-hubspot
             git pull origin main
-            docker build -t moca-nest .
-            docker stop moca-container || true
-            docker rm moca-container || true
-            docker run -d -p 3000:3000 --name moca-container moca-nest
 
+            # Build Docker image with commit SHA tag
+            IMAGE_TAG="moca-nest:${{ github.sha }}"
+            docker build -t moca-nest:latest -t $IMAGE_TAG .
+
+            # Run new container on different port first
+            docker run -d -p 3001:3000 --name moca-container-new \
+              --restart unless-stopped \
+              moca-nest:latest
+
+            # Wait for health check
+            echo "Waiting for new container to be healthy..."
+            sleep 10
+
+            # Check if new container is running
+            if docker ps | grep -q moca-container-new; then
+              echo "New container is healthy, switching traffic..."
+
+              # Stop and remove old container
+              docker stop moca-container 2>/dev/null || true
+              docker rm moca-container 2>/dev/null || true
+
+              # Rename new container to main
+              docker stop moca-container-new
+              docker rm moca-container-new
+              docker run -d -p 3000:3000 --name moca-container \
+                --restart unless-stopped \
+                moca-nest:latest
+
+              echo "Deployment successful!"
+
+              # Clean up old images (keep last 3)
+              docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
+            else
+              echo "New container failed health check, rolling back..."
+              docker stop moca-container-new 2>/dev/null || true
+              docker rm moca-container-new 2>/dev/null || true
+              exit 1
+            fi
