@@ -50,12 +50,24 @@ jobs:
               --restart unless-stopped \
               moca-nest:latest
 
-            # Wait for health check
-            echo "Waiting for new container to be healthy..."
-            sleep 10
+            # Wait and retry health check with exponential backoff
+            echo "Starting health check for new container..."
+            HEALTHY=false
+            for i in {1..6}; do
+              echo "Health check attempt $i/6..."
+              if docker ps | grep -q moca-container-new && curl -f http://localhost:3001/ > /dev/null 2>&1; then
+                echo "✓ Health check passed!"
+                HEALTHY=true
+                break
+              fi
+              if [ $i -lt 6 ]; then
+                echo "✗ Health check failed, retrying in 5 seconds..."
+                sleep 5
+              fi
+            done
 
-            # Check if new container is running and responding
-            if docker ps | grep -q moca-container-new && curl -f http://localhost:3001/ > /dev/null 2>&1; then
+            # Check if new container is healthy
+            if [ "$HEALTHY" = true ]; then
               echo "New container is healthy, switching traffic..."
 
               # Stop and remove old container
