@@ -54,8 +54,8 @@ jobs:
             echo "Waiting for new container to be healthy..."
             sleep 10
 
-            # Check if new container is running
-            if docker ps | grep -q moca-container-new; then
+            # Check if new container is running and responding
+            if docker ps | grep -q moca-container-new && curl -f http://localhost:3001/ > /dev/null 2>&1; then
               echo "New container is healthy, switching traffic..."
 
               # Stop and remove old container
