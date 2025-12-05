@@ -22,7 +22,7 @@ describe('AppController', () => {
         data: { timestamp: string };
       };
       expect(result).toHaveProperty('statusCode', 200);
-      expect(result).toHaveProperty('message', 'Hello World3!');
+      expect(result).toHaveProperty('message', 'Hello World3');
       expect(result).toHaveProperty('data');
       expect(result.data).toHaveProperty('timestamp');
     });
