@@ -41,6 +41,13 @@ jobs:
             cd ~/moca-hubspot
             git pull origin main
 
+            # Install docker-compose if not available
+            if ! command -v docker-compose &> /dev/null; then
+              echo "Installing docker-compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            fi
+
             # Ensure .env file exists for production
             if [ ! -f .env ]; then
               echo "⚠️  Creating .env from .env.production template"
@@ -54,7 +61,7 @@ jobs:
 
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
-            docker compose down || true
+            docker-compose down || true
 
             # Build new image with commit SHA tag
             IMAGE_TAG="moca-nest:${{ github.sha }}"
@@ -62,7 +69,7 @@ jobs:
 
             # Start services with Docker Compose
             echo "Starting services with Docker Compose..."
-            docker compose up -d
+            docker-compose up -d
 
             # Wait for services to be healthy
             echo "Waiting for services to be healthy..."
@@ -87,13 +94,13 @@ jobs:
               echo "🎉 Deployment successful!"
 
               # Show running containers
-              docker compose ps
+              docker-compose ps
 
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
             else
               echo "❌ Deployment failed - application is not healthy"
               echo "Rolling back..."
-              docker compose down
+              docker-compose down
               exit 1
             fi
