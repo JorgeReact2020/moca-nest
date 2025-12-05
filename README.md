@@ -29,6 +29,8 @@
 
 This application uses PostgreSQL. Make sure you have PostgreSQL installed and running.
 
+### Local Development
+
 1. Create a database:
 ```bash
 createdb moca_nest
@@ -46,6 +48,40 @@ DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=your_password
 DB_DATABASE=moca_nest
+```
+
+### Production Deployment (EC2 with Docker Compose)
+
+The application uses Docker Compose to run both the app and PostgreSQL in containers.
+
+1. On your EC2 instance, create a `.env` file:
+```bash
+cp .env.production .env
+```
+
+2. Update the `.env` file with secure credentials:
+```bash
+DB_HOST=postgres
+DB_PORT=5432
+DB_USERNAME=moca_user
+DB_PASSWORD=your_secure_password_here
+DB_DATABASE=moca_nest
+```
+
+3. The GitHub Actions workflow will automatically:
+   - Pull the latest code
+   - Build the Docker image
+   - Start PostgreSQL and the app using Docker Compose
+   - Run health checks
+   - Rollback if deployment fails
+
+4. **First deployment**: After the first deploy, you may want to seed the database:
+```bash
+# SSH into EC2
+ssh your-ec2-instance
+
+# Run seed inside the container
+docker exec -it moca-container npm run seed
 ```
 
 ## Project setup

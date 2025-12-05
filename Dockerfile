@@ -1,6 +1,9 @@
 # Utiliser l'image Node officielle (version LTS)
 FROM node:20-alpine
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 

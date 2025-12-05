@@ -41,22 +41,35 @@ jobs:
             cd ~/moca-hubspot
             git pull origin main
 
-            # Build Docker image with commit SHA tag
+            # Ensure .env file exists for production
+            if [ ! -f .env ]; then
+              echo "⚠️  Creating .env from .env.production template"
+              cp .env.production .env
+              echo "⚠️  WARNING: Please update database credentials in .env file!"
+            fi
+
+            # Stop existing containers gracefully
+            echo "Stopping existing containers..."
+            docker-compose down || true
+
+            # Build new image with commit SHA tag
             IMAGE_TAG="moca-nest:${{ github.sha }}"
             docker build -t moca-nest:latest -t $IMAGE_TAG .
 
-            # Run new container on different port first
-            docker run -d -p 3001:3000 --name moca-container-new \
-              --restart unless-stopped \
-              moca-nest:latest
+            # Start services with Docker Compose
+            echo "Starting services with Docker Compose..."
+            docker-compose up -d
 
-            # Wait and retry health check with exponential backoff
-            echo "Starting health check for new container..."
+            # Wait for services to be healthy
+            echo "Waiting for services to be healthy..."
+            sleep 15
+
+            # Check if app is responding
             HEALTHY=false
             for i in {1..6}; do
               echo "Health check attempt $i/6..."
-              if docker ps | grep -q moca-container-new && curl -f http://localhost:3001/ > /dev/null 2>&1; then
-                echo "✓ Health check passed!"
+              if curl -f http://localhost:3000/ > /dev/null 2>&1; then
+                echo "✓ Application is healthy!"
                 HEALTHY=true
                 break
               fi
@@ -66,22 +79,20 @@ jobs:
               fi
             done
 
-            # Check if new container is healthy
             if [ "$HEALTHY" = true ]; then
-              echo "New container is healthy, switching traffic..."
-
-              # Stop and remove old container
-              docker stop moca-container 2>/dev/null || true
-              docker rm moca-container 2>/dev/null || true
-
-              # Rename new container to main
-              docker stop moca-container-new
-              docker rm moca-container-new
-              docker run -d -p 3000:3000 --name moca-container \
-                --restart unless-stopped \
-                moca-nest:latest
-
-              echo "Deployment successful!"
+              echo "🎉 Deployment successful!"
+              
+              # Show running containers
+              docker-compose ps
+              
+              # Clean up old images (keep last 3)
+              docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
+            else
+              echo "❌ Deployment failed - application is not healthy"
+              echo "Rolling back..."
+              docker-compose down
+              exit 1
+            fi
 
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
