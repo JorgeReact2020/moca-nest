@@ -66,6 +66,10 @@ jobs:
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
             $DOCKER_COMPOSE down || true
+            
+            # Force remove any lingering containers with the same names
+            echo "Removing any lingering containers..."
+            docker rm -f moca-container moca-postgres 2>/dev/null || true
 
             # Build new image with commit SHA tag
             IMAGE_TAG="moca-nest:${{ github.sha }}"
