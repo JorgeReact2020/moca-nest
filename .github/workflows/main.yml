@@ -81,10 +81,10 @@ jobs:
 
             if [ "$HEALTHY" = true ]; then
               echo "🎉 Deployment successful!"
-              
+
               # Show running containers
               docker-compose ps
-              
+
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
             else

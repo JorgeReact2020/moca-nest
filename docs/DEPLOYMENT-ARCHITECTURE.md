@@ -50,12 +50,12 @@ Your NestJS application was crashing on EC2 because it couldn't connect to Postg
 
 ### Files Created/Modified
 
-✅ `docker-compose.yml` - Multi-container orchestration  
-✅ `.env.production` - Production environment template  
-✅ `.github/workflows/main.yml` - Updated deployment workflow  
-✅ `Dockerfile` - Added curl for health checks  
-✅ `docs/EC2-SETUP.md` - Complete setup guide  
-✅ `README.md` - Updated with deployment instructions  
+✅ `docker-compose.yml` - Multi-container orchestration
+✅ `.env.production` - Production environment template
+✅ `.github/workflows/main.yml` - Updated deployment workflow
+✅ `Dockerfile` - Added curl for health checks
+✅ `docs/EC2-SETUP.md` - Complete setup guide
+✅ `README.md` - Updated with deployment instructions
 
 ### Benefits
 
