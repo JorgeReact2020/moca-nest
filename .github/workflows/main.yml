@@ -48,9 +48,13 @@ jobs:
               echo "⚠️  WARNING: Please update database credentials in .env file!"
             fi
 
+            # Clean up Docker resources to free disk space
+            echo "Cleaning up Docker resources..."
+            docker system prune -af --volumes || true
+
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
-            docker-compose down || true
+            docker compose down || true
 
             # Build new image with commit SHA tag
             IMAGE_TAG="moca-nest:${{ github.sha }}"
@@ -58,7 +62,7 @@ jobs:
 
             # Start services with Docker Compose
             echo "Starting services with Docker Compose..."
-            docker-compose up -d
+            docker compose up -d
 
             # Wait for services to be healthy
             echo "Waiting for services to be healthy..."
@@ -83,22 +87,13 @@ jobs:
               echo "🎉 Deployment successful!"
 
               # Show running containers
-              docker-compose ps
+              docker compose ps
 
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
             else
               echo "❌ Deployment failed - application is not healthy"
               echo "Rolling back..."
-              docker-compose down
-              exit 1
-            fi
-
-              # Clean up old images (keep last 3)
-              docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
-            else
-              echo "New container failed health check, rolling back..."
-              docker stop moca-container-new 2>/dev/null || true
-              docker rm moca-container-new 2>/dev/null || true
+              docker compose down
               exit 1
             fi
