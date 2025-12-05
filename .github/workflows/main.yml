@@ -41,17 +41,16 @@ jobs:
             cd ~/moca-hubspot
             git pull origin main
 
+            # Set docker-compose path
+            DOCKER_COMPOSE="$HOME/bin/docker-compose"
+            
             # Install docker-compose if not available (in user's home directory)
-            if ! command -v docker-compose &> /dev/null; then
+            if [ ! -f "$DOCKER_COMPOSE" ]; then
               echo "Installing docker-compose..."
               mkdir -p ~/bin
-              curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o ~/bin/docker-compose
-              chmod +x ~/bin/docker-compose
-              export PATH="$HOME/bin:$PATH"
+              curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o "$DOCKER_COMPOSE"
+              chmod +x "$DOCKER_COMPOSE"
             fi
-            
-            # Ensure PATH includes ~/bin for docker-compose
-            export PATH="$HOME/bin:$PATH"
 
             # Ensure .env file exists for production
             if [ ! -f .env ]; then
@@ -66,7 +65,7 @@ jobs:
 
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
-            docker-compose down || true
+            $DOCKER_COMPOSE down || true
 
             # Build new image with commit SHA tag
             IMAGE_TAG="moca-nest:${{ github.sha }}"
@@ -74,7 +73,7 @@ jobs:
 
             # Start services with Docker Compose
             echo "Starting services with Docker Compose..."
-            docker-compose up -d
+            $DOCKER_COMPOSE up -d
 
             # Wait for services to be healthy
             echo "Waiting for services to be healthy..."
@@ -99,13 +98,13 @@ jobs:
               echo "🎉 Deployment successful!"
 
               # Show running containers
-              docker-compose ps
+              $DOCKER_COMPOSE ps
 
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
             else
               echo "❌ Deployment failed - application is not healthy"
               echo "Rolling back..."
-              docker-compose down
+              $DOCKER_COMPOSE down
               exit 1
             fi
