@@ -23,7 +23,30 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository with PostgreSQL integration.
+
+## Database Setup
+
+This application uses PostgreSQL. Make sure you have PostgreSQL installed and running.
+
+1. Create a database:
+```bash
+createdb moca_nest
+```
+
+2. Create a `.env` file in the root directory (copy from `.env.example`):
+```bash
+cp .env.example .env
+```
+
+3. Update the `.env` file with your PostgreSQL credentials:
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_DATABASE=moca_nest
+```
 
 ## Project setup
 
@@ -43,6 +66,23 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+
+## API Endpoints
+
+### Contacts
+
+- `GET /contacts` - Get all contacts
+- `GET /contacts/:id` - Get a contact by ID
+- `POST /contacts` - Create a new contact
+  ```json
+  {
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com"
+  }
+  ```
+- `PUT /contacts/:id` - Update a contact
+- `DELETE /contacts/:id` - Delete a contact
 
 ## Run tests
 
