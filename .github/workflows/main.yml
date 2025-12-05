@@ -41,12 +41,17 @@ jobs:
             cd ~/moca-hubspot
             git pull origin main
 
-            # Install docker-compose if not available
+            # Install docker-compose if not available (in user's home directory)
             if ! command -v docker-compose &> /dev/null; then
               echo "Installing docker-compose..."
-              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
+              mkdir -p ~/bin
+              curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o ~/bin/docker-compose
+              chmod +x ~/bin/docker-compose
+              export PATH="$HOME/bin:$PATH"
             fi
+            
+            # Ensure PATH includes ~/bin for docker-compose
+            export PATH="$HOME/bin:$PATH"
 
             # Ensure .env file exists for production
             if [ ! -f .env ]; then
