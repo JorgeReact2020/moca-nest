@@ -41,8 +41,14 @@ export class HubSpotService {
     }
 
     this.hubspotClient = new Client({ accessToken: apiKey });
-    this.retryAttempts = this.configService.get<number>('hubspot.retryAttempts', 3);
-    this.retryDelay = this.configService.get<number>('hubspot.retryDelay', 1000);
+    this.retryAttempts = this.configService.get<number>(
+      'hubspot.retryAttempts',
+      3,
+    );
+    this.retryDelay = this.configService.get<number>(
+      'hubspot.retryDelay',
+      1000,
+    );
 
     this.logger.log('HubSpot client initialized');
   }
@@ -90,9 +96,7 @@ export class HubSpotService {
             ? parseInt(retryAfter, 10) * 1000
             : this.retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
 
-          this.logger.warn(
-            `Rate limited. Waiting ${waitTime}ms before retry`,
-          );
+          this.logger.warn(`Rate limited. Waiting ${waitTime}ms before retry`);
 
           await this.sleep(waitTime);
           continue;
@@ -140,7 +144,9 @@ export class HubSpotService {
    */
   validateContactData(data: HubSpotContactData): boolean {
     if (!data.email) {
-      this.logger.error(`Contact missing required email field. Data: ${JSON.stringify(data)}`);
+      this.logger.error(
+        `Contact missing required email field. Data: ${JSON.stringify(data)}`,
+      );
       return false;
     }
     return true;

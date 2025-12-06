@@ -20,9 +20,15 @@ export class LoggerService implements NestLoggerService {
    * Initialize Winston logger with daily rotation transport
    */
   private initializeLogger(): void {
-    const logDirectory = this.configService.get<string>('logger.directory', 'logs');
+    const logDirectory = this.configService.get<string>(
+      'logger.directory',
+      'logs',
+    );
     const logLevel = this.configService.get<string>('logger.level', 'info');
-    const datePattern = this.configService.get<string>('logger.datePattern', 'YYYY-MM-DD');
+    const datePattern = this.configService.get<string>(
+      'logger.datePattern',
+      'YYYY-MM-DD',
+    );
     const maxFiles = this.configService.get<string>('logger.maxFiles', '30d');
     const maxSize = this.configService.get<string>('logger.maxSize', '20m');
 
@@ -30,12 +36,16 @@ export class LoggerService implements NestLoggerService {
     const customFormat = winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.errors({ stack: true }),
-      winston.format.printf(({ timestamp, level, message, context, stack, ...meta }) => {
-        const contextStr = context ? ` {${context}}` : '';
-        const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-        const stackStr = stack ? `\n${stack}` : '';
-        return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}${metaStr}${stackStr}`;
-      }),
+      winston.format.printf(
+        ({ timestamp, level, message, context, stack, ...meta }) => {
+          const contextStr = context ? ` {${context}}` : '';
+          const metaStr = Object.keys(meta).length
+            ? ` ${JSON.stringify(meta)}`
+            : '';
+          const stackStr = stack ? `\n${stack}` : '';
+          return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}${metaStr}${stackStr}`;
+        },
+      ),
     );
 
     // Transport for daily rotating files
@@ -50,10 +60,7 @@ export class LoggerService implements NestLoggerService {
 
     // Console transport for development
     const consoleTransport = new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        customFormat,
-      ),
+      format: winston.format.combine(winston.format.colorize(), customFormat),
     });
 
     this.logger = winston.createLogger({
@@ -113,7 +120,12 @@ export class LoggerService implements NestLoggerService {
   /**
    * Log with additional metadata
    */
-  logWithMeta(level: string, message: string, meta: Record<string, any>, context?: string): void {
+  logWithMeta(
+    level: string,
+    message: string,
+    meta: Record<string, any>,
+    context?: string,
+  ): void {
     this.logger.log(level, message, {
       ...meta,
       context: context || this.context,
@@ -123,7 +135,13 @@ export class LoggerService implements NestLoggerService {
   /**
    * Log HTTP request/response
    */
-  logHttp(method: string, url: string, statusCode: number, responseTime: number, context?: string): void {
+  logHttp(
+    method: string,
+    url: string,
+    statusCode: number,
+    responseTime: number,
+    context?: string,
+  ): void {
     this.logger.info(`${method} ${url} ${statusCode} - ${responseTime}ms`, {
       context: context || this.context,
       method,

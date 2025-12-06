@@ -13,11 +13,7 @@ import { HubSpotSignatureGuard } from '../../common/guards/hubspot-signature.gua
  * Wires together controller, service, guards, and dependencies
  */
 @Module({
-  imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([Contact]),
-    HubSpotModule,
-  ],
+  imports: [ConfigModule, TypeOrmModule.forFeature([Contact]), HubSpotModule],
   controllers: [WebhookController],
   providers: [WebhookService, LoggerService, HubSpotSignatureGuard],
 })

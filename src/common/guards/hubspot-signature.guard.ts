@@ -27,15 +27,22 @@ export class HubSpotSignatureGuard implements CanActivate {
     private logger: LoggerService,
   ) {
     this.logger.setContext('HubSpotSignatureGuard');
-    this.webhookSecret = this.configService.get<string>('hubspot.webhookSecret', '');
+    this.webhookSecret = this.configService.get<string>(
+      'hubspot.webhookSecret',
+      '',
+    );
     this.appMode = this.configService.get<string>('APP_MODE', 'development');
 
     if (!this.webhookSecret) {
-      this.logger.warn('HubSpot webhook secret not configured - signature verification disabled');
+      this.logger.warn(
+        'HubSpot webhook secret not configured - signature verification disabled',
+      );
     }
 
     if (this.appMode !== 'production') {
-      this.logger.warn(`APP_MODE is '${this.appMode}' - signature verification will be bypassed`);
+      this.logger.warn(
+        `APP_MODE is '${this.appMode}' - signature verification will be bypassed`,
+      );
     }
   }
 
@@ -50,16 +57,19 @@ export class HubSpotSignatureGuard implements CanActivate {
 
     // Get raw request body as string (not JSON.stringify)
     // NestJS stores the raw body in request.rawBody if configured
-    const requestBody = typeof request.body === 'string'
-      ? request.body
-      : JSON.stringify(request.body);
+    const requestBody =
+      typeof request.body === 'string'
+        ? request.body
+        : JSON.stringify(request.body);
 
     this.logger.log('Verifying HubSpot webhook signature');
     this.logger.debug(`Request body: ${requestBody}`);
 
     // Bypass signature verification if APP_MODE is not 'production'
     if (this.appMode !== 'production') {
-      this.logger.warn(`Signature verification bypassed - APP_MODE is '${this.appMode}'`);
+      this.logger.warn(
+        `Signature verification bypassed - APP_MODE is '${this.appMode}'`,
+      );
       return true;
     }
 
@@ -111,12 +121,12 @@ export class HubSpotSignatureGuard implements CanActivate {
     // Concatenate client secret + request body
     const sourceString = this.webhookSecret + payload;
 
-    this.logger.debug(`Source string for signature: ${sourceString.substring(0, 100)}...`);
+    this.logger.debug(
+      `Source string for signature: ${sourceString.substring(0, 100)}...`,
+    );
 
     // Create SHA-256 hash (NOT HMAC!)
-    return createHash('sha256')
-      .update(sourceString)
-      .digest('hex');
+    return createHash('sha256').update(sourceString).digest('hex');
   }
 
   /**

@@ -33,7 +33,9 @@ export class WebhookService {
    * @param events - Array of validated webhook events
    * @returns Number of events processed successfully
    */
-  async processContactWebhook(events: HubSpotWebhookEventDto[]): Promise<number> {
+  async processContactWebhook(
+    events: HubSpotWebhookEventDto[],
+  ): Promise<number> {
     this.logger.log(`Processing webhook with ${events.length} event(s)`);
 
     let processed = 0;
