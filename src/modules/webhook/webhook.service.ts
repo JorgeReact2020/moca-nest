@@ -46,9 +46,11 @@ export class WebhookService {
         await this.processContactEvent(event.objectId.toString());
         processed++;
       } catch (error) {
+        const errorStack =
+          error instanceof Error ? error.stack : 'No stack trace available';
         this.logger.error(
           `Failed to process event for contact ${event.objectId}`,
-          error.stack,
+          errorStack,
         );
         // Continue processing other events even if one fails
         // In production, you might want to add this to a dead letter queue
@@ -134,9 +136,11 @@ export class WebhookService {
 
       return savedContact;
     } catch (error) {
+      const errorStack =
+        error instanceof Error ? error.stack : 'No stack trace available';
       this.logger.error(
         `Failed to upsert contact ${contactData.email}`,
-        error.stack,
+        errorStack,
       );
       throw new HttpException(
         'Failed to save contact to database',

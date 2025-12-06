@@ -36,4 +36,4 @@ async function runSeeders() {
   }
 }
 
-runSeeders();
+void runSeeders();

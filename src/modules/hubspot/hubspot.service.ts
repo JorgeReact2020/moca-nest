@@ -83,15 +83,20 @@ export class HubSpotService {
         this.logger.debug(`Contact email: ${contactData.email}`);
 
         return contactData;
-      } catch (error) {
-        lastError = error;
+      } catch (error: unknown) {
+        lastError = error as Error;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.warn(
-          `Attempt ${attempt}/${this.retryAttempts} failed for contact ${contactId}: ${error.message}`,
+          `Attempt ${attempt}/${this.retryAttempts} failed for contact ${contactId}: ${errorMessage}`,
         );
 
         // Handle rate limiting (429)
-        if (error.response?.status === 429) {
-          const retryAfter = error.response?.headers?.['retry-after'];
+        const errorResponse = error as {
+          response?: { status?: number; headers?: Record<string, string> };
+        };
+        if (errorResponse.response?.status === 429) {
+          const retryAfter = errorResponse.response?.headers?.['retry-after'];
           const waitTime = retryAfter
             ? parseInt(retryAfter, 10) * 1000
             : this.retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
@@ -103,7 +108,7 @@ export class HubSpotService {
         }
 
         // Handle not found (404)
-        if (error.response?.status === 404) {
+        if (errorResponse.response?.status === 404) {
           this.logger.error(`Contact not found in HubSpot: ${contactId}`);
           throw new HttpException(
             `Contact ${contactId} not found in HubSpot`,

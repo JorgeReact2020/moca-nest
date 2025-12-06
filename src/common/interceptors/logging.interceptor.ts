@@ -18,8 +18,13 @@ export class LoggingInterceptor implements NestInterceptor {
     this.logger.setContext('HTTP');
   }
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<{
+      method: string;
+      url: string;
+      body: unknown;
+      headers: Record<string, string>;
+    }>();
     const { method, url, body, headers } = request;
     const startTime = Date.now();
 
@@ -30,19 +35,21 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next: (data) => {
-          const response = context.switchToHttp().getResponse();
+        next: () => {
+          const response = context.switchToHttp().getResponse<{
+            statusCode: number;
+          }>();
           const { statusCode } = response;
           const responseTime = Date.now() - startTime;
 
           this.logger.logHttp(method, url, statusCode, responseTime, 'HTTP');
-          this.logger.debug(`Response data: ${JSON.stringify(data)}`, 'HTTP');
         },
-        error: (error) => {
+        error: (error: Error) => {
           const responseTime = Date.now() - startTime;
+          const errorStack = error.stack ?? 'No stack trace available';
           this.logger.error(
             `${method} ${url} failed after ${responseTime}ms`,
-            error.stack,
+            errorStack,
             'HTTP',
           );
         },

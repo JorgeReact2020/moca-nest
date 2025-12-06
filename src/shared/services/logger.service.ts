@@ -36,16 +36,52 @@ export class LoggerService implements NestLoggerService {
     const customFormat = winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.errors({ stack: true }),
-      winston.format.printf(
-        ({ timestamp, level, message, context, stack, ...meta }) => {
-          const contextStr = context ? ` {${context}}` : '';
-          const metaStr = Object.keys(meta).length
-            ? ` ${JSON.stringify(meta)}`
+      winston.format.printf((info) => {
+        const timestamp = info.timestamp as string | undefined;
+        const level = info.level as string | undefined;
+        const message = info.message as string | undefined;
+        const context = info.context as
+          | string
+          | Record<string, unknown>
+          | undefined;
+        const stack = info.stack as
+          | string
+          | Record<string, unknown>
+          | undefined;
+
+        const contextStr = context
+          ? ` {${typeof context === 'string' ? context : JSON.stringify(context)}}`
+          : '';
+
+        const metaStr =
+          Object.keys(info).filter(
+            (key) =>
+              !['timestamp', 'level', 'message', 'context', 'stack'].includes(
+                key,
+              ),
+          ).length > 0
+            ? ` ${JSON.stringify(
+                Object.fromEntries(
+                  Object.entries(info).filter(
+                    ([key]) =>
+                      ![
+                        'timestamp',
+                        'level',
+                        'message',
+                        'context',
+                        'stack',
+                      ].includes(key),
+                  ),
+                ),
+              )}`
             : '';
-          const stackStr = stack ? `\n${stack}` : '';
-          return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}${metaStr}${stackStr}`;
-        },
-      ),
+
+        const stackStr = stack
+          ? `\n${typeof stack === 'string' ? stack : JSON.stringify(stack)}`
+          : '';
+
+        return `[${String(timestamp)}] [${String(level).toUpperCase()}] ${String(message)}${contextStr}${metaStr}${stackStr}`;
+      }),
     );
 
     // Transport for daily rotating files

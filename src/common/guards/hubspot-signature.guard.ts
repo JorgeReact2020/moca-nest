@@ -51,9 +51,14 @@ export class HubSpotSignatureGuard implements CanActivate {
    * @param context - ExecutionContext containing the request
    * @returns true if signature is valid, throws UnauthorizedException otherwise
    */
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const signature = request.headers['x-hubspot-signature'];
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string>;
+      body: unknown;
+    }>();
+    const signature = request.headers['x-hubspot-signature'] as
+      | string
+      | undefined;
 
     // Get raw request body as string (not JSON.stringify)
     // NestJS stores the raw body in request.rawBody if configured
@@ -105,7 +110,9 @@ export class HubSpotSignatureGuard implements CanActivate {
         throw new UnauthorizedException('Invalid signature');
       }
     } catch (error) {
-      this.logger.error('Signature verification failed', error.stack);
+      const errorMessage =
+        error instanceof Error ? error.stack : 'Unknown error';
+      this.logger.error('Signature verification failed', errorMessage);
       throw new UnauthorizedException('Signature verification failed');
     }
   }

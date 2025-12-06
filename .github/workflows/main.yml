@@ -43,7 +43,7 @@ jobs:
 
             # Set docker-compose path
             DOCKER_COMPOSE="$HOME/bin/docker-compose"
-            
+
             # Install docker-compose if not available (in user's home directory)
             if [ ! -f "$DOCKER_COMPOSE" ]; then
               echo "Installing docker-compose..."
@@ -66,7 +66,7 @@ jobs:
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
             $DOCKER_COMPOSE down || true
-            
+
             # Force remove any lingering containers with the same names
             echo "Removing any lingering containers..."
             docker rm -f moca-container moca-postgres 2>/dev/null || true
