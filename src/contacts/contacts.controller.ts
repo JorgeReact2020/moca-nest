@@ -24,7 +24,7 @@ export class ContactsController {
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Contact | null> {
-    return this.contactsService.findOne(+id);
+    return this.contactsService.findOne(id);
   }
 
   @Post()
@@ -38,12 +38,12 @@ export class ContactsController {
     @Param('id') id: string,
     @Body() updateContactDto: UpdateContactDto,
   ): Promise<Contact | null> {
-    return this.contactsService.update(+id, updateContactDto);
+    return this.contactsService.update(id, updateContactDto);
   }
 
   @Delete(':id')
   @HttpCode(204)
   async remove(@Param('id') id: string): Promise<void> {
-    return this.contactsService.remove(+id);
+    return this.contactsService.remove(id);
   }
 }

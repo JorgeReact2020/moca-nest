@@ -1,0 +1,16 @@
+[
+  {
+    "eventId": 714285774,
+    "subscriptionId": 4849549,
+    "portalId": 50687303,
+    "appId": 25681700,
+    "occurredAt": 1765043528476,
+    "subscriptionType": "contact.propertyChange",
+    "attemptNumber": 0,
+    "objectId": 173595202426,
+    "propertyName": "firstname",
+    "propertyValue": "Briane",
+    "changeSource": "CRM_UI",
+    "sourceId": "userId:10202051"
+  }
+]

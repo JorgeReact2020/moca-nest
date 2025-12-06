@@ -16,7 +16,7 @@ export class ContactsService {
     return this.contactsRepository.find();
   }
 
-  findOne(id: number): Promise<Contact | null> {
+  findOne(id: string): Promise<Contact | null> {
     return this.contactsRepository.findOneBy({ id });
   }
 
@@ -26,14 +26,14 @@ export class ContactsService {
   }
 
   async update(
-    id: number,
+    id: string,
     updateContactDto: UpdateContactDto,
   ): Promise<Contact | null> {
     await this.contactsRepository.update(id, updateContactDto);
     return this.findOne(id);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.contactsRepository.delete(id);
   }
 }

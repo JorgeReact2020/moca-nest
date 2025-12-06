@@ -1,9 +1,19 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
-@Entity()
+/**
+ * Contact entity representing contacts synchronized from HubSpot
+ */
+@Entity('contacts')
 export class Contact {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   firstname: string;
@@ -11,6 +21,17 @@ export class Contact {
   @Column()
   lastname: string;
 
-  @Column()
+  @Column({ unique: true })
+  @Index()
   email: string;
+
+  @Column({ name: 'hubspot_id', unique: true, nullable: true })
+  @Index()
+  hubspotId: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }
