@@ -33,10 +33,19 @@ jobs:
     steps:
       - name: SSH and deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          HUBSPOT_CLIENT_SECRET: ${{ secrets.HUBSPOT_CLIENT_SECRET }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
+          envs: HUBSPOT_API_KEY,HUBSPOT_CLIENT_SECRET,DB_HOST,DB_PORT,DB_USERNAME,DB_PASSWORD,DB_DATABASE
           script: |
             cd ~/moca-hubspot
             git pull origin main
@@ -52,12 +61,25 @@ jobs:
               chmod +x "$DOCKER_COMPOSE"
             fi
 
-            # Ensure .env file exists for production
-            if [ ! -f .env ]; then
-              echo "⚠️  Creating .env from .env.production template"
-              cp .env.production .env
-              echo "⚠️  WARNING: Please update database credentials in .env file!"
-            fi
+            # Create .env.production with secrets from GitHub Actions
+            echo "📝 Creating .env.production with secrets from GitHub Actions..."
+            cat > .env.production << EOF
+            # Node Environment
+            NODE_ENV=production
+            PORT=3000
+
+            # Database Configuration
+            DB_HOST=${DB_HOST}
+            DB_PORT=${DB_PORT}
+            DB_USERNAME=${DB_USERNAME}
+            DB_PASSWORD=${DB_PASSWORD}
+            DB_DATABASE=${DB_DATABASE}
+
+            # HubSpot Configuration
+            HUBSPOT_API_KEY=${HUBSPOT_API_KEY}
+            HUBSPOT_CLIENT_SECRET=${HUBSPOT_CLIENT_SECRET}
+            EOF
+            echo "✅ .env.production created successfully"
 
             # Clean up Docker resources to free disk space
             echo "Cleaning up Docker resources..."
