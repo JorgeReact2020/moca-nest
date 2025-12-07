@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contact } from './contact.entity';
@@ -48,8 +48,18 @@ export class ContactsService {
   }
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
-    const newContact = this.contactsRepository.create(createContactDto);
-    return this.contactsRepository.save(newContact);
+    try {
+      const newContact = this.contactsRepository.create(createContactDto);
+      return await this.contactsRepository.save(newContact);
+    } catch (error) {
+      // PostgreSQL unique violation error code
+      if (error.code === '23505') {
+        throw new ConflictException(
+          `Contact with email '${createContactDto.email}' already exists`,
+        );
+      }
+      throw error;
+    }
   }
 
   async update(
