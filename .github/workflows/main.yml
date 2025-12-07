@@ -78,6 +78,9 @@ jobs:
             # HubSpot Configuration
             HUBSPOT_API_KEY=${HUBSPOT_API_KEY}
             HUBSPOT_WEBHOOK_SECRET=${HUBSPOT_WEBHOOK_SECRET}
+
+            # Application Configuration
+            APP_MODE=production
             EOF
             echo "✅ .env.production created successfully"
 
