@@ -30,3 +30,25 @@ export const PostgresErrorCode = {
 
 export type PostgresErrorCode =
   (typeof PostgresErrorCode)[keyof typeof PostgresErrorCode];
+
+/**
+ * Interface for PostgreSQL database errors
+ */
+interface DatabaseError {
+  code: string;
+  detail?: string;
+  table?: string;
+  constraint?: string;
+}
+
+/**
+ * Type guard to check if an error is a database error with a code
+ */
+export function isDatabaseError(error: unknown): error is DatabaseError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as DatabaseError).code === 'string'
+  );
+}

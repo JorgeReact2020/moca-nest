@@ -6,7 +6,10 @@ import { Company } from '@companies/company.entity';
 import { Deal } from '@deals/deal.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
-import { PostgresErrorCode } from '../common/constants/database-errors';
+import {
+  PostgresErrorCode,
+  isDatabaseError,
+} from '../common/constants/database-errors';
 
 @Injectable()
 export class ContactsService {
@@ -54,7 +57,10 @@ export class ContactsService {
       return await this.contactsRepository.save(newContact);
     } catch (error) {
       // Handle PostgreSQL unique violation error
-      if (error.code === PostgresErrorCode.UNIQUE_VIOLATION) {
+      if (
+        isDatabaseError(error) &&
+        error.code === PostgresErrorCode.UNIQUE_VIOLATION
+      ) {
         throw new ConflictException(
           `Contact with email '${createContactDto.email}' already exists`,
         );
