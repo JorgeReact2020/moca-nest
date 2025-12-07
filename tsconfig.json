@@ -14,6 +14,17 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@contacts/*": ["src/contacts/*"],
+      "@companies/*": ["src/companies/*"],
+      "@deals/*": ["src/deals/*"],
+      "@line-items/*": ["src/line-items/*"],
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

@@ -96,12 +96,12 @@ After adding all secrets, you should see them listed:
 - Retrieves secrets from GitHub Secrets
 - SSH to EC2 with encrypted connection
 - Creates .env.production file on EC2:
-  
+
   HUBSPOT_API_KEY=<value from GitHub>
   HUBSPOT_CLIENT_SECRET=<value from GitHub>
   DB_PASSWORD=<value from GitHub>
   # ... etc
-  
+
 - Restarts application with new secrets
 ```
 
@@ -150,13 +150,13 @@ After setting up secrets and pushing code:
    ```bash
    ssh ubuntu@your-ec2-host
    cd ~/moca-hubspot
-   
+
    # Verify .env.production exists (DON'T cat it - it contains secrets!)
    ls -la .env.production
-   
+
    # Check if containers are running
    docker ps
-   
+
    # Check application logs
    docker logs moca-container --tail 50
    ```
@@ -176,7 +176,7 @@ After setting up secrets and pushing code:
 
 ### Problem: Application fails to start after deployment
 
-**Solution**: 
+**Solution**:
 ```bash
 ssh ubuntu@your-ec2-host
 cd ~/moca-hubspot

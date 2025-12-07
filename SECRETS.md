@@ -1,7 +1,7 @@
 # Secrets Management
 
 > **⚠️ DEPRECATED**: This manual approach is no longer recommended.
-> 
+>
 > **Use GitHub Secrets instead!** See [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md) for the automated approach.
 
 ## Why GitHub Secrets Are Better

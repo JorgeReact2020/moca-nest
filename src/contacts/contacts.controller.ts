@@ -27,6 +27,24 @@ export class ContactsController {
     return this.contactsService.findOne(id);
   }
 
+  /**
+   * GET /contacts/:id/companies
+   * Get all companies for a specific contact
+   */
+  @Get(':id/companies')
+  findCompanies(@Param('id') id: string) {
+    return this.contactsService.findCompanies(id);
+  }
+
+  /**
+   * GET /contacts/:id/deals
+   * Get all deals for a specific contact (includes line items)
+   */
+  @Get(':id/deals')
+  findDeals(@Param('id') id: string) {
+    return this.contactsService.findDeals(id);
+  }
+
   @Post()
   @HttpCode(201)
   create(@Body() createContactDto: CreateContactDto): Promise<Contact> {

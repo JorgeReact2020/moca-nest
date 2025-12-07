@@ -156,4 +156,211 @@ export class HubSpotService {
     }
     return true;
   }
+
+  /**
+   * Get companies associated with a contact
+   * @param contactId - HubSpot contact ID
+   * @returns Array of company HubSpot IDs
+   */
+  async getContactCompanies(contactId: string): Promise<string[]> {
+    this.logger.log(`Fetching companies for contact: ${contactId}`);
+
+    try {
+      const response = await this.hubspotClient.crm.associations.batchApi.read(
+        'contacts',
+        'companies',
+        { inputs: [{ id: contactId }] },
+      );
+
+      const companyIds = response.results.flatMap((result) =>
+        result.to.map((assoc) => assoc.id),
+      );
+      this.logger.log(
+        `Found ${companyIds.length} companies for contact ${contactId}`,
+      );
+
+      return companyIds;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to fetch companies for contact ${contactId}: ${errorMessage}`,
+      );
+      return []; // Return empty array if associations fail
+    }
+  }
+
+  /**
+   * Get company details by HubSpot ID
+   * @param companyId - HubSpot company ID
+   * @returns Company data with name and domain
+   */
+  async getCompanyById(
+    companyId: string,
+  ): Promise<{ name: string; domain: string | null }> {
+    this.logger.log(`Fetching company from HubSpot: ${companyId}`);
+
+    try {
+      const company = await this.hubspotClient.crm.companies.basicApi.getById(
+        companyId,
+        ['name', 'domain'],
+      );
+
+      return {
+        name: company.properties.name || 'Unnamed Company',
+        domain: company.properties.domain || null,
+      };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to fetch company ${companyId}: ${errorMessage}`,
+      );
+      throw new HttpException(
+        `Failed to fetch company ${companyId}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+  /**
+   * Get deals associated with a contact
+   * @param contactId - HubSpot contact ID
+   * @returns Array of deal HubSpot IDs
+   */
+  async getContactDeals(contactId: string): Promise<string[]> {
+    this.logger.log(`Fetching deals for contact: ${contactId}`);
+
+    try {
+      const response = await this.hubspotClient.crm.associations.batchApi.read(
+        'contacts',
+        'deals',
+        { inputs: [{ id: contactId }] },
+      );
+
+      const dealIds = response.results.flatMap((result) =>
+        result.to.map((assoc) => assoc.id),
+      );
+      this.logger.log(`Found ${dealIds.length} deals for contact ${contactId}`);
+
+      return dealIds;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to fetch deals for contact ${contactId}: ${errorMessage}`,
+      );
+      return []; // Return empty array if associations fail
+    }
+  }
+
+  /**
+   * Get deal details by HubSpot ID
+   * @param dealId - HubSpot deal ID
+   * @returns Deal data with name, stage, and amount
+   */
+  async getDealById(
+    dealId: string,
+  ): Promise<{ name: string; stage: string | null; amount: number | null }> {
+    this.logger.log(`Fetching deal from HubSpot: ${dealId}`);
+
+    try {
+      const deal = await this.hubspotClient.crm.deals.basicApi.getById(dealId, [
+        'dealname',
+        'dealstage',
+        'amount',
+      ]);
+
+      return {
+        name: deal.properties.dealname || 'Unnamed Deal',
+        stage: deal.properties.dealstage || null,
+        amount: deal.properties.amount
+          ? parseFloat(deal.properties.amount)
+          : null,
+      };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to fetch deal ${dealId}: ${errorMessage}`);
+      throw new HttpException(
+        `Failed to fetch deal ${dealId}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+  /**
+   * Get line items associated with a deal
+   * @param dealId - HubSpot deal ID
+   * @returns Array of line item HubSpot IDs
+   */
+  async getDealLineItems(dealId: string): Promise<string[]> {
+    this.logger.log(`Fetching line items for deal: ${dealId}`);
+
+    try {
+      const response = await this.hubspotClient.crm.associations.batchApi.read(
+        'deals',
+        'line_items',
+        { inputs: [{ id: dealId }] },
+      );
+
+      const lineItemIds = response.results.flatMap((result) =>
+        result.to.map((assoc) => assoc.id),
+      );
+      this.logger.log(
+        `Found ${lineItemIds.length} line items for deal ${dealId}`,
+      );
+
+      return lineItemIds;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to fetch line items for deal ${dealId}: ${errorMessage}`,
+      );
+      return []; // Return empty array if associations fail
+    }
+  }
+
+  /**
+   * Get line item details by HubSpot ID
+   * @param lineItemId - HubSpot line item ID
+   * @returns Line item data with name, quantity, price, and product_id
+   */
+  async getLineItemById(lineItemId: string): Promise<{
+    name: string;
+    quantity: number;
+    price: number | null;
+    productId: string | null;
+  }> {
+    this.logger.log(`Fetching line item from HubSpot: ${lineItemId}`);
+
+    try {
+      const lineItem = await this.hubspotClient.crm.lineItems.basicApi.getById(
+        lineItemId,
+        ['name', 'quantity', 'price', 'hs_product_id'],
+      );
+
+      return {
+        name: lineItem.properties.name || 'Unnamed Line Item',
+        quantity: lineItem.properties.quantity
+          ? parseInt(lineItem.properties.quantity, 10)
+          : 1,
+        price: lineItem.properties.price
+          ? parseFloat(lineItem.properties.price)
+          : null,
+        productId: lineItem.properties.hs_product_id || null,
+      };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to fetch line item ${lineItemId}: ${errorMessage}`,
+      );
+      throw new HttpException(
+        `Failed to fetch line item ${lineItemId}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
 }
