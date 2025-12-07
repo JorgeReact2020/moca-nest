@@ -84,6 +84,10 @@ jobs:
             EOF
             echo "✅ .env.production created successfully"
 
+            # Copy .env.production to .env for docker-compose to read
+            cp .env.production .env
+            echo "✅ Copied .env.production to .env"
+
             # Clean up Docker resources to free disk space
             echo "Cleaning up Docker resources..."
             docker system prune -af --volumes || true

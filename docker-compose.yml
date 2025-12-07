@@ -34,6 +34,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_DATABASE}
       NODE_ENV: production
+      APP_MODE: ${APP_MODE:-development}
       HUBSPOT_API_KEY: ${HUBSPOT_API_KEY}
       HUBSPOT_WEBHOOK_SECRET: ${HUBSPOT_WEBHOOK_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
