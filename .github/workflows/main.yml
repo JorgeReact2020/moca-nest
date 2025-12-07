@@ -100,13 +100,14 @@ jobs:
             echo "Removing any lingering containers..."
             docker rm -f moca-container moca-postgres 2>/dev/null || true
 
-            # Build new image with commit SHA tag
+            # Build and tag image with commit SHA for tracking
             IMAGE_TAG="moca-nest:${{ github.sha }}"
+            echo "Building image: $IMAGE_TAG"
             docker build -t moca-nest:latest -t $IMAGE_TAG .
 
-            # Start services with Docker Compose
+            # Start services with Docker Compose (with --build to ensure fresh build)
             echo "Starting services with Docker Compose..."
-            $DOCKER_COMPOSE up -d
+            $DOCKER_COMPOSE up -d --build
 
             # Wait for services to be healthy
             echo "Waiting for services to be healthy..."
