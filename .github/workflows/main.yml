@@ -120,7 +120,7 @@ jobs:
             # Ensure database exists
             echo "📊 Ensuring database exists..."
             DB_EXISTS=$(docker exec moca-postgres psql -U ${DB_USERNAME} -lqt | cut -d \| -f 1 | grep -w ${DB_DATABASE} | wc -l)
-            
+
             if [ "$DB_EXISTS" -eq "0" ]; then
               echo "⚠️  Database '${DB_DATABASE}' does not exist. Creating it..."
               docker exec moca-postgres psql -U ${DB_USERNAME} -c "CREATE DATABASE ${DB_DATABASE};"
