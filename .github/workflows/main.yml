@@ -161,8 +161,8 @@ jobs:
 
             # Check if app is responding
             HEALTHY=false
-            for i in {1..10}; do
-              echo "Health check attempt $i/10..."
+            for i in {1..5}; do
+              echo "Health check attempt $i/5..."
 
               # Try health endpoint first, then root
               if curl -f http://localhost:3000/ > /dev/null 2>&1 || curl -f http://localhost:3000/health > /dev/null 2>&1; then
