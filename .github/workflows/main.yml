@@ -109,22 +109,62 @@ jobs:
             echo "Starting services with Docker Compose..."
             $DOCKER_COMPOSE up -d --build
 
-            # Wait for services to be healthy
-            echo "Waiting for services to be healthy..."
+            # Show container status immediately
+            echo "📊 Container status:"
+            $DOCKER_COMPOSE ps
+
+            # Wait for database to be ready
+            echo "Waiting for database to be ready..."
+            sleep 10
+
+            # Check database health
+            echo "Checking database container..."
+            docker logs moca-postgres --tail 20
+
+            # Wait for app container to start
+            echo "Waiting for application to start..."
             sleep 15
+
+            # Show app logs for debugging
+            echo "📋 Application logs (last 50 lines):"
+            docker logs moca-container --tail 50
+
+            # Check if containers are running
+            APP_RUNNING=$(docker ps --filter "name=moca-container" --filter "status=running" -q)
+            DB_RUNNING=$(docker ps --filter "name=moca-postgres" --filter "status=running" -q)
+
+            if [ -z "$APP_RUNNING" ]; then
+              echo "❌ Application container is not running!"
+              echo "Full container logs:"
+              docker logs moca-container
+              $DOCKER_COMPOSE down
+              exit 1
+            fi
+
+            if [ -z "$DB_RUNNING" ]; then
+              echo "❌ Database container is not running!"
+              docker logs moca-postgres
+              $DOCKER_COMPOSE down
+              exit 1
+            fi
 
             # Check if app is responding
             HEALTHY=false
-            for i in {1..6}; do
-              echo "Health check attempt $i/6..."
-              if curl -f http://localhost:3000/ > /dev/null 2>&1; then
+            for i in {1..10}; do
+              echo "Health check attempt $i/10..."
+              
+              # Try health endpoint first, then root
+              if curl -f http://localhost:3000/ > /dev/null 2>&1 || curl -f http://localhost:3000/health > /dev/null 2>&1; then
                 echo "✓ Application is healthy!"
                 HEALTHY=true
                 break
               fi
-              if [ $i -lt 6 ]; then
-                echo "✗ Health check failed, retrying in 5 seconds..."
-                sleep 5
+              
+              if [ $i -lt 10 ]; then
+                echo "✗ Health check failed, retrying in 10 seconds..."
+                echo "Recent logs:"
+                docker logs moca-container --tail 10
+                sleep 10
               fi
             done
 
@@ -134,10 +174,18 @@ jobs:
               # Show running containers
               $DOCKER_COMPOSE ps
 
+              # Show final app status
+              echo "Final application logs (last 20 lines):"
+              docker logs moca-container --tail 20
+
               # Clean up old images (keep last 3)
               docker images moca-nest --format "{{.ID}}" | tail -n +4 | xargs -r docker rmi || true
             else
               echo "❌ Deployment failed - application is not healthy"
+              echo "Full application logs:"
+              docker logs moca-container
+              echo "Full database logs:"
+              docker logs moca-postgres
               echo "Rolling back..."
               $DOCKER_COMPOSE down
               exit 1
