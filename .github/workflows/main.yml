@@ -88,9 +88,9 @@ jobs:
             cp .env.production .env
             echo "✅ Copied .env.production to .env"
 
-            # Clean up Docker resources to free disk space
-            echo "Cleaning up Docker resources..."
-            docker system prune -af --volumes || true
+            # Clean up Docker resources to free disk space (but keep volumes!)
+            echo "Cleaning up Docker resources (preserving volumes)..."
+            docker system prune -af || true
 
             # Stop existing containers gracefully
             echo "Stopping existing containers..."
@@ -116,6 +116,18 @@ jobs:
             # Wait for database to be ready
             echo "Waiting for database to be ready..."
             sleep 10
+
+            # Ensure database exists
+            echo "📊 Ensuring database exists..."
+            DB_EXISTS=$(docker exec moca-postgres psql -U ${DB_USERNAME} -lqt | cut -d \| -f 1 | grep -w ${DB_DATABASE} | wc -l)
+            
+            if [ "$DB_EXISTS" -eq "0" ]; then
+              echo "⚠️  Database '${DB_DATABASE}' does not exist. Creating it..."
+              docker exec moca-postgres psql -U ${DB_USERNAME} -c "CREATE DATABASE ${DB_DATABASE};"
+              echo "✅ Database '${DB_DATABASE}' created successfully"
+            else
+              echo "✅ Database '${DB_DATABASE}' already exists"
+            fi
 
             # Check database health
             echo "Checking database container..."
@@ -152,14 +164,14 @@ jobs:
             HEALTHY=false
             for i in {1..10}; do
               echo "Health check attempt $i/10..."
-              
+
               # Try health endpoint first, then root
               if curl -f http://localhost:3000/ > /dev/null 2>&1 || curl -f http://localhost:3000/health > /dev/null 2>&1; then
                 echo "✓ Application is healthy!"
                 HEALTHY=true
                 break
               fi
-              
+
               if [ $i -lt 10 ]; then
                 echo "✗ Health check failed, retrying in 10 seconds..."
                 echo "Recent logs:"
