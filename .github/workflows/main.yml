@@ -117,16 +117,15 @@ jobs:
             echo "Waiting for database to be ready..."
             sleep 10
 
-            # Ensure database exists
+            # Ensure database exists (using postgres superuser for admin tasks)
             echo "📊 Ensuring database exists..."
-            DB_EXISTS=$(docker exec moca-postgres psql -U ${DB_USERNAME} -lqt | cut -d \| -f 1 | grep -w ${DB_DATABASE} | wc -l)
+            DB_EXISTS=$(docker exec moca-postgres psql -U postgres -lqt | cut -d \| -f 1 | grep -w ${DB_DATABASE} | wc -l)
 
             if [ "$DB_EXISTS" -eq "0" ]; then
               echo "⚠️  Database '${DB_DATABASE}' does not exist. Creating it..."
-              docker exec moca-postgres psql -U ${DB_USERNAME} -c "CREATE DATABASE ${DB_DATABASE};"
-              echo "✅ Database '${DB_DATABASE}' created successfully"
-            else
-              echo "✅ Database '${DB_DATABASE}' already exists"
+              docker exec moca-postgres psql -U postgres -c "CREATE DATABASE ${DB_DATABASE};"
+              docker exec moca-postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_DATABASE} TO ${DB_USERNAME};"
+              echo "✅ Database '${DB_DATABASE}' created and permissions granted"
             fi
 
             # Check database health
