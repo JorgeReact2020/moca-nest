@@ -358,4 +358,68 @@ export class HubSpotService {
       );
     }
   }
+
+  /**
+   * Get contacts associated with a deal
+   * @param dealId - HubSpot deal ID
+   * @returns Array of contact HubSpot IDs
+   */
+  async getDealContacts(dealId: string): Promise<string[]> {
+    this.logger.log(`Fetching contacts for deal: ${dealId}`);
+
+    try {
+      const response = await this.hubspotClient.crm.associations.batchApi.read(
+        'deals',
+        'contacts',
+        { inputs: [{ id: dealId }] },
+      );
+
+      const contactIds = response.results.flatMap((result) =>
+        result.to.map((assoc) => assoc.id),
+      );
+      this.logger.log(`Found ${contactIds.length} contacts for deal ${dealId}`);
+
+      return contactIds;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to fetch contacts for deal ${dealId}: ${errorMessage}`,
+      );
+      return []; // Return empty array if associations fail
+    }
+  }
+
+  /**
+   * Get companies associated with a deal
+   * @param dealId - HubSpot deal ID
+   * @returns Array of company HubSpot IDs
+   */
+  async getDealCompanies(dealId: string): Promise<string[]> {
+    this.logger.log(`Fetching companies for deal: ${dealId}`);
+
+    try {
+      const response = await this.hubspotClient.crm.associations.batchApi.read(
+        'deals',
+        'companies',
+        { inputs: [{ id: dealId }] },
+      );
+
+      const companyIds = response.results.flatMap((result) =>
+        result.to.map((assoc) => assoc.id),
+      );
+      this.logger.log(
+        `Found ${companyIds.length} companies for deal ${dealId}`,
+      );
+
+      return companyIds;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        `Failed to fetch companies for deal ${dealId}: ${errorMessage}`,
+      );
+      return []; // Return empty array if associations fail
+    }
+  }
 }

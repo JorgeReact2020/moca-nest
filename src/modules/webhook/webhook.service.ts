@@ -1,14 +1,14 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Contact } from '@contacts/contact.entity';
 import { Company } from '@companies/company.entity';
+import { Contact } from '@contacts/contact.entity';
 import { Deal } from '@deals/deal.entity';
 import { LineItem } from '@line-items/line-item.entity';
 import { HubSpotService } from '@modules/hubspot/hubspot.service';
 import { MocaService } from '@modules/moca/moca.service';
-import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { LoggerService } from '@shared/services/logger.service';
+import { Repository } from 'typeorm';
+import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
 
 /**
  * Service responsible for processing HubSpot webhooks
@@ -69,6 +69,166 @@ export class WebhookService {
     }
 
     return processed;
+  }
+
+  /**
+   * Process deal creation webhook from HubSpot
+   * Retrieves the deal, associated contact, company, and line items
+   *
+   * @param events - Array of validated webhook events
+   * @returns Number of events processed successfully
+   */
+  async processDealCreationWebhook(
+    events: HubSpotWebhookEventDto[],
+  ): Promise<number> {
+    this.logger.log(
+      `Processing deal creation webhook with ${events.length} event(s)`,
+    );
+
+    let processed = 0;
+
+    for (const event of events) {
+      try {
+        await this.processDealEvent(event.objectId.toString());
+        processed++;
+      } catch (error) {
+        const errorStack =
+          error instanceof Error ? error.stack : 'No stack trace available';
+        this.logger.error(
+          `Failed to process event for deal ${event.objectId}`,
+          errorStack,
+        );
+        // Continue processing other events even if one fails
+      }
+    }
+
+    return processed;
+  }
+
+  /**
+   * Process a single deal event
+   * Fetches deal data and all associated entities from HubSpot
+   *
+   * @param dealId - HubSpot deal ID (objectId)
+   */
+  private async processDealEvent(dealId: string): Promise<void> {
+    this.logger.log(`Processing deal event for ID: ${dealId}`);
+
+    // Step 1: Fetch deal data from HubSpot
+    const dealData = await this.hubspotService.getDealById(dealId);
+    this.logger.log(
+      `Fetched deal "${dealData.name}" (stage: ${dealData.stage}, amount: ${dealData.amount})`,
+    );
+
+    // Step 2: Get associated contacts (all deals must be attached to at least one contact)
+    const contactIds = await this.hubspotService.getDealContacts(dealId);
+    if (contactIds.length === 0) {
+      this.logger.warn(
+        `Deal ${dealId} has no associated contacts. Skipping processing.`,
+      );
+      return;
+    }
+
+    this.logger.log(`Found ${contactIds.length} contact(s) for deal ${dealId}`);
+
+    // Step 3: Ensure primary contact exists in database
+    const primaryContactId = contactIds[0]; // Use first contact as primary
+    let contact = await this.contactRepository.findOne({
+      where: { hubspotId: primaryContactId },
+    });
+
+    if (!contact) {
+      // Contact doesn't exist in DB, fetch and create it
+      this.logger.log(
+        `Contact ${primaryContactId} not found in DB, fetching from HubSpot`,
+      );
+      const hubspotContact =
+        await this.hubspotService.getContactById(primaryContactId);
+
+      contact = await this.upsertContact({
+        firstname: hubspotContact.firstname,
+        lastname: hubspotContact.lastname,
+        email: hubspotContact.email,
+        hubspotId: primaryContactId,
+      });
+    }
+
+    // Step 4: Get associated companies
+    const companyIds = await this.hubspotService.getDealCompanies(dealId);
+    this.logger.log(
+      `Found ${companyIds.length} company(ies) for deal ${dealId}`,
+    );
+
+    // Sync companies if any exist
+    if (companyIds.length > 0) {
+      await this.syncDealCompanies(dealId, companyIds, contact.id);
+    }
+
+    // Step 5: Upsert the deal
+    const deal = await this.upsertDeal({
+      hubspotId: dealId,
+      name: dealData.name,
+      stage: dealData.stage,
+      amount: dealData.amount,
+      hasLineItems: false, // Will be updated after syncing line items
+      contactId: contact.id,
+    });
+
+    // Step 6: Get and sync line items
+    const lineItemIds = await this.hubspotService.getDealLineItems(dealId);
+    this.logger.log(
+      `Found ${lineItemIds.length} line item(s) for deal ${dealId}`,
+    );
+
+    if (lineItemIds.length > 0) {
+      await this.syncDealLineItems(dealId, deal.id, lineItemIds);
+      // Update deal to indicate it has line items
+      await this.dealRepository.update(deal.id, { hasLineItems: true });
+    }
+
+    this.logger.log(
+      `Successfully processed deal ${dealId} with all associations`,
+    );
+  }
+
+  /**
+   * Sync companies associated with a deal
+   * @param dealId - HubSpot deal ID
+   * @param companyIds - Array of company HubSpot IDs
+   * @param contactId - Database contact UUID (for linking companies to contact)
+   */
+  private async syncDealCompanies(
+    dealId: string,
+    companyIds: string[],
+    contactId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Syncing ${companyIds.length} companies for deal ${dealId}`,
+    );
+
+    for (const companyId of companyIds) {
+      try {
+        const companyData = await this.hubspotService.getCompanyById(companyId);
+
+        await this.upsertCompany({
+          hubspotId: companyId,
+          name: companyData.name,
+          domain: companyData.domain,
+          contactId,
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(
+          `Failed to sync company ${companyId} for deal ${dealId}: ${errorMessage}`,
+        );
+        // Continue with other companies
+      }
+    }
+
+    this.logger.log(
+      `Successfully synced ${companyIds.length} companies for deal ${dealId}`,
+    );
   }
 
   /**

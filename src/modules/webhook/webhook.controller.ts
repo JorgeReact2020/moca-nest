@@ -1,15 +1,15 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   HttpCode,
   HttpStatus,
+  Post,
   UseGuards,
 } from '@nestjs/common';
-import { WebhookService } from './webhook.service';
-import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
 import { HubSpotSignatureGuard } from '../../common/guards/hubspot-signature.guard';
 import { LoggerService } from '../../shared/services/logger.service';
+import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
+import { WebhookService } from './webhook.service';
 
 /**
  * Controller for HubSpot webhook endpoints
@@ -44,11 +44,30 @@ export class WebhookController {
   ): Promise<{ status: string; message: string; processed: number }> {
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
+    let processed = 0;
 
-    // Delegate business logic to service layer
-    const processed = await this.webhookService.processContactWebhook(payload);
-
-    this.logger.log(`Webhook processed successfully: ${processed} event(s)`);
+    switch (payload[0]?.subscriptionType) {
+      case 'contact.creation':
+      case 'contact.propertyChange':
+      case 'contact.deletion':
+        processed = await this.webhookService.processContactWebhook(payload);
+        this.logger.log('Processing contact webhook event(s)');
+        break;
+      case 'deal.creation':
+        processed =
+          await this.webhookService.processDealCreationWebhook(payload);
+        this.logger.log('Processing deal creation webhook event(s)');
+        break;
+      default:
+        this.logger.warn(
+          `Unhandled subscription type: ${payload[0]?.subscriptionType}`,
+        );
+        return {
+          status: 'ignored',
+          message: `No processing for subscription type: ${payload[0]?.subscriptionType}`,
+          processed: 0,
+        };
+    }
 
     return {
       status: 'success',
