@@ -8,5 +8,5 @@ export default registerAs('database', () => ({
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'moca_nest',
   autoLoadEntities: true,
-  synchronize: process.env.NODE_ENV === 'production', // ⚠️ Set to
+  synchronize: process.env.NODE_ENV === 'development', // ⚠️ Set to
 }));
