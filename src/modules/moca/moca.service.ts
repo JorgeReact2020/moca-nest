@@ -1,7 +1,7 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Contact } from '@contacts/contact.entity';
+import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '@shared/services/logger.service';
-import { Contact } from '@contacts/contact.entity';
 
 /**
  * Service responsible for syncing contact data to external Moca API
@@ -81,7 +81,7 @@ export class MocaService {
 
     try {
       // Check if contact already has mocaUserId (was previously synced)
-      let isUpdate = !!contact.mocaUserId;
+      const isUpdate = !!contact.mocaUserId;
       let method = isUpdate ? 'PUT' : 'POST';
       let endpoint = isUpdate
         ? `${this.apiUrl}/client/${contact.mocaUserId}`
@@ -93,7 +93,7 @@ export class MocaService {
         `${method} ${endpoint} - Payload: ${JSON.stringify(payload)}`,
       );
 
-      let response;
+      let response: { id: string };
       try {
         response = await this.makeRequest(
           endpoint,

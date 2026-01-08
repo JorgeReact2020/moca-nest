@@ -33,8 +33,9 @@ import { LoggerService } from './shared/services/logger.service';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
+
       useFactory: (configService: ConfigService) => ({
-        ...configService.get('database'),
+        ...configService.get('database'), // eslint-disable-line
       }),
       inject: [ConfigService],
     }),

@@ -1,7 +1,6 @@
 import hubspotConfig from '@/config/hubspot.config';
 import { Client } from '@hubspot/api-client';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
 /**
