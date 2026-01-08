@@ -8,6 +8,7 @@ import { Company } from '@companies/company.entity';
 import { Deal } from '@deals/deal.entity';
 import { LineItem } from '@line-items/line-item.entity';
 import { HubSpotModule } from '@modules/hubspot/hubspot.module';
+import { MocaModule } from '@modules/moca/moca.module';
 import { LoggerService } from '@shared/services/logger.service';
 import { HubSpotSignatureGuard } from '@common/guards/hubspot-signature.guard';
 
@@ -20,6 +21,7 @@ import { HubSpotSignatureGuard } from '@common/guards/hubspot-signature.guard';
     ConfigModule,
     TypeOrmModule.forFeature([Contact, Company, Deal, LineItem]),
     HubSpotModule,
+    MocaModule,
   ],
   controllers: [WebhookController],
   providers: [WebhookService, LoggerService, HubSpotSignatureGuard],

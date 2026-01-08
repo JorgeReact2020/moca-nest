@@ -6,6 +6,7 @@ import { Company } from '@companies/company.entity';
 import { Deal } from '@deals/deal.entity';
 import { LineItem } from '@line-items/line-item.entity';
 import { HubSpotService } from '@modules/hubspot/hubspot.service';
+import { MocaService } from '@modules/moca/moca.service';
 import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
 import { LoggerService } from '@shared/services/logger.service';
 
@@ -26,6 +27,7 @@ export class WebhookService {
     @InjectRepository(LineItem)
     private lineItemRepository: Repository<LineItem>,
     private hubspotService: HubSpotService,
+    private mocaService: MocaService,
     private logger: LoggerService,
   ) {
     this.logger.setContext('WebhookService');
@@ -151,6 +153,9 @@ export class WebhookService {
       const savedContact = await this.contactRepository.save(contact);
 
       this.logger.log(`Contact saved successfully: ${savedContact.id}`);
+
+      // Sync to external Moca API
+      await this.syncContactToMoca(savedContact);
 
       return savedContact;
     } catch (error) {
@@ -418,5 +423,47 @@ export class WebhookService {
     }
 
     return await this.lineItemRepository.save(lineItem);
+  }
+
+  /**
+   * Sync contact to external Moca API
+   * Updates mocaUserId, syncedAt, and syncStatus after sync attempt
+   *
+   * @param contact - Contact to sync
+   */
+  private async syncContactToMoca(contact: Contact): Promise<void> {
+    try {
+      this.logger.log(`Syncing contact ${contact.email} to Moca API`);
+
+      // Call Moca API to sync contact
+      const mocaUserId = await this.mocaService.syncContact(contact);
+
+      // Update contact with mocaUserId, syncedAt timestamp, and success status
+      await this.contactRepository.update(contact.id, {
+        mocaUserId,
+        syncedAt: new Date(),
+        syncStatus: true, // Success
+      });
+
+      this.logger.log(
+        `Successfully synced contact ${contact.email} to Moca API (mocaUserId: ${mocaUserId})`,
+      );
+    } catch (error) {
+      // Mark sync as failed and update syncedAt to track last attempt
+      await this.contactRepository.update(contact.id, {
+        syncedAt: new Date(),
+        syncStatus: false, // Failed
+      });
+
+      // Log error but don't throw - we don't want Moca sync failures to block HubSpot webhook processing
+      const errorStack =
+        error instanceof Error ? error.stack : 'No stack trace available';
+      this.logger.error(
+        `Failed to sync contact ${contact.email} to Moca API: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        errorStack,
+      );
+      // The contact was saved to local database successfully
+      // Moca sync will be retried on next contact update from HubSpot
+    }
   }
 }

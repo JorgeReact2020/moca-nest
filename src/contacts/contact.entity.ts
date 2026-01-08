@@ -1,14 +1,14 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Index,
-  OneToMany,
-} from 'typeorm';
 import { Company } from '@companies/company.entity';
 import { Deal } from '@deals/deal.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 /**
  * Contact entity representing contacts synchronized from HubSpot
@@ -31,6 +31,21 @@ export class Contact {
   @Column({ name: 'hubspot_id', unique: true, nullable: true })
   @Index()
   hubspotId: string;
+
+  // Moca API sync tracking
+  @Column({ name: 'moca_user_id', type: 'varchar', nullable: true })
+  mocaUserId: string | null;
+
+  @Column({ name: 'synced_at', type: 'timestamp', nullable: true })
+  syncedAt: Date | null;
+
+  @Column({
+    name: 'sync_status',
+    type: 'boolean',
+    nullable: true,
+    default: false,
+  })
+  syncStatus: boolean | null;
 
   // One contact can have many companies
   @OneToMany(() => Company, (company) => company.contact, {
