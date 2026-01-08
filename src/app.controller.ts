@@ -7,7 +7,7 @@ export class AppController {
 
   @Get()
   @HttpCode(200)
-  getHello(@Request() req: Request): object {
-    return this.appService.getHello(req);
+  getHello(): object {
+    return this.appService.getHello();
   }
 }
