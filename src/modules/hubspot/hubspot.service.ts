@@ -1,8 +1,9 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import hubspotConfig from '@/config/hubspot.config';
 import { Client } from '@hubspot/api-client';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
-
 /**
  * Interface for HubSpot contact data
  */
@@ -23,7 +24,8 @@ export class HubSpotService {
   private retryDelay: number;
 
   constructor(
-    private configService: ConfigService,
+    @Inject(hubspotConfig.KEY)
+    private hubSpotKeys: ConfigType<typeof hubspotConfig>,
     private logger: LoggerService,
   ) {
     this.logger.setContext('HubSpotService');
@@ -34,21 +36,15 @@ export class HubSpotService {
    * Initialize HubSpot API client
    */
   private initializeClient(): void {
-    const apiKey = this.configService.get<string>('hubspot.apiKey');
+    const apiKey = this.hubSpotKeys.apiKey;
 
     if (!apiKey) {
       this.logger.warn('HubSpot API key not configured');
     }
 
     this.hubspotClient = new Client({ accessToken: apiKey });
-    this.retryAttempts = this.configService.get<number>(
-      'hubspot.retryAttempts',
-      3,
-    );
-    this.retryDelay = this.configService.get<number>(
-      'hubspot.retryDelay',
-      1000,
-    );
+    this.retryAttempts = this.hubSpotKeys.retryAttempts;
+    this.retryDelay = this.hubSpotKeys.retryDelay;
 
     this.logger.log('HubSpot client initialized');
   }
