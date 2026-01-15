@@ -24,10 +24,10 @@ import { IsString, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
  * ]
  */
 export class MocaContactPropertiesDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
   @IsOptional()
-  objectId: number;
+  objectId: string;
 
   @IsString()
   @IsOptional()
@@ -36,4 +36,8 @@ export class MocaContactPropertiesDto {
   @IsString()
   @IsOptional()
   firstname: string;
+
+  @IsString()
+  @IsOptional()
+  lastname: string;
 }

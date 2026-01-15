@@ -20,6 +20,9 @@ async function bootstrap() {
       whitelist: true, // Strip properties that don't have decorators
       forbidNonWhitelisted: true, // Throw error if non-whitelisted properties are present
       transform: true, // Automatically transform payloads to DTO instances
+      forbidUnknownValues: true, // Forbid unknown values
+      stopAtFirstError: true, // Stop validation on the first error
+      enableDebugMessages: true, // Enable debug messages
     }),
   );
   const configService = app.get(ConfigService);

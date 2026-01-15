@@ -1,10 +1,4 @@
-import {
-  IsArray,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { MocaContactPropertiesDto } from './moca-contact-properties.dto';
 
 /**
@@ -37,7 +31,7 @@ export class MocaWebhookEventDto {
 
   @IsString()
   @IsNotEmpty()
-  appId: string;
+  appId: 'MOCA-SYNC';
 
   @IsNumber()
   @IsNotEmpty()
@@ -45,7 +39,7 @@ export class MocaWebhookEventDto {
 
   @IsString()
   @IsNotEmpty()
-  type: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  action: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
   @IsString()
   @IsNotEmpty()
@@ -55,15 +49,10 @@ export class MocaWebhookEventDto {
   @IsNotEmpty()
   attemptNumber: number;
 
-  @IsNumber()
-  @IsOptional()
-  objectId: number;
-
-  @IsArray()
-  @IsNotEmpty()
-  properties: MocaContactPropertiesDto[];
-
   @IsString()
+  @IsOptional()
+  objectId: string;
+
   @IsNotEmpty()
-  changeSource: string;
+  properties: MocaContactPropertiesDto;
 }

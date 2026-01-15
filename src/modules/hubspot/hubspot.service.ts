@@ -3,6 +3,8 @@ import { Client } from '@hubspot/api-client';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
+import { MocaContactPropertiesDto } from '../moca/dto/moca-contact-properties.dto';
+import { FilterOperatorEnum, PublicObjectSearchRequest } from '@hubspot/api-client/lib/codegen/crm/companies';
 /**
  * Interface for HubSpot contact data
  */
@@ -422,4 +424,164 @@ export class HubSpotService {
       return []; // Return empty array if associations fail
     }
   }
+
+  /**
+   * Create a new contact in HubSpot
+   * @param properties - Contact properties (e.g., firstname, lastname, email)
+   * @returns Created contact ID
+   */
+  async createContact(properties: MocaContactPropertiesDto): Promise<string> {
+    this.logger.log('Creating new contact in HubSpot');
+    this.logger.debug(`Contact properties: ${JSON.stringify(properties)}`);
+
+    const isContactValid = this.validateContactData({
+      firstname: properties.firstname || '',
+      lastname: properties.lastname || '',
+      email: properties.email,
+    });
+
+
+    try {
+      const response = await this.hubspotClient.crm.contacts.basicApi.create({
+        properties: { ...properties },
+      });
+
+      this.logger.log(`Successfully created contact with ID: ${response.id}`);
+      return response.id;
+
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to create contact: ${errorMessage}`);
+      throw new HttpException(
+        'Failed to create contact in HubSpot',
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
+  /**
+   * Update an existing contact in HubSpot
+   * @param contactId - HubSpot contact ID
+   * @param properties - Contact properties to update
+   * @returns Updated contact ID
+   */
+  async updateContact(
+    contactId: string,
+    properties: MocaContactPropertiesDto,
+  ): Promise<string> {
+    this.logger.log(`Updating contact in HubSpot: ${contactId}`);
+    this.logger.debug(`Update properties: ${JSON.stringify(properties)}`);
+
+    try {
+      const response = await this.hubspotClient.crm.contacts.basicApi.update(
+        contactId,
+        { properties: { ...properties } },
+      );
+
+      this.logger.log(`Successfully updated contact: ${contactId}`);
+      return response.id;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to update contact ${contactId}: ${errorMessage}`,
+      );
+
+      const errorResponse = error as { response?: { status?: number } };
+      if (errorResponse.response?.status === 404) {
+        throw new HttpException(
+          `Contact ${contactId} not found in HubSpot`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      throw new HttpException(
+        `Failed to update contact ${contactId}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+
+  /**
+   * Search for a contact by email address
+   * @param email - Email address to search for
+   * @returns Contact ID if found, null otherwise
+   */
+  async searchContactByEmail(email: string): Promise<string | null> {
+    this.logger.log(`Searching for contact by email: ${email}`);
+
+    const filter: PublicObjectSearchRequest = {
+      filterGroups: [
+        {
+          filters: [
+            {
+              propertyName: 'email',
+              operator: FilterOperatorEnum.Eq,
+              value: email,
+            },
+          ],
+        },
+      ],
+      properties: ['email'],
+      limit: 1,
+    };
+
+    try {
+      const response =
+        await this.hubspotClient.crm.contacts.searchApi.doSearch(filter);
+
+      if (response.results.length > 0) {
+        const contactId = response.results[0].id;
+        this.logger.log(`Found contact with email ${email}: ${contactId}`);
+        return contactId;
+      }
+
+      this.logger.log(`No contact found with email: ${email}`);
+      return null;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to search contact by email ${email}: ${errorMessage}`,
+      );
+      throw new HttpException(
+        'Failed to search contact by email',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+  /**
+   * Create or update a contact in HubSpot
+   * @param method - HTTP method ('POST' for create, 'PATCH' for update)
+   * @param properties - Contact properties
+   * @param contactId - HubSpot contact ID (required for PATCH)
+   * @returns Contact ID
+   */
+  /*   async upsertContact(
+    method: 'POST' | 'PATCH',
+    properties: Record<string, string>,
+    contactId?: string,
+  ): Promise<string> {
+    if (method === 'POST') {
+      return this.createContact(properties);
+    }
+
+    if (method === 'PATCH') {
+      if (!contactId) {
+        throw new HttpException(
+          'Contact ID is required for PATCH method',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return this.updateContact(contactId, properties);
+    }
+
+    throw new HttpException(
+      'Invalid method. Use POST or PATCH',
+      HttpStatus.BAD_REQUEST,
+    );
+  } */
 }
