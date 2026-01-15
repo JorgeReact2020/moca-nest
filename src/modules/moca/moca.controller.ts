@@ -64,14 +64,17 @@ export class SyncController {
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
 
+    let response: ResponseMocaWebHook = {};
+
     for (const currentPayload of payload) {
       this.logger.debug(`Processing event: ${JSON.stringify(currentPayload)}`);
       switch (currentPayload?.action) {
         case 'POST':
-          return await this.createContact(currentPayload);
+          response = await this.createContact(currentPayload);
+          break;
         case 'PATCH':
-          return await this.updateContact(currentPayload);
-
+          response = await this.updateContact(currentPayload);
+          break;
         case 'DELETE':
           return {
             status: true,
@@ -83,21 +86,11 @@ export class SyncController {
           this.logger.warn(
             `Unhandled subscription type: ${currentPayload?.action}`,
           );
-          return {
-            status: false,
-            type: currentPayload?.action,
-            id: '121',
-            date: Date.now(),
-          };
+          return response;
       }
       // Process each payload item here
     }
-    return {
-      status: false,
-      type: payload[0]?.action,
-      id: '121',
-      date: Date.now(),
-    };
+    return response;
   }
 
   async createContact(
@@ -145,9 +138,9 @@ export class SyncController {
   async updateContact(
     currentPayload: MocaWebhookEventDto,
   ): Promise<ResponseMocaWebHook> {
-    const isContactValid = currentPayload.properties.objectId === undefined;
+    const isContactValid = currentPayload.objectId === undefined;
 
-    if (!isContactValid) {
+    if (isContactValid) {
       this.logger.warn(
         `Invalid contact data: ${JSON.stringify(currentPayload.properties)}`,
       );
