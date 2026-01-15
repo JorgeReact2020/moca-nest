@@ -54,6 +54,7 @@ export class WebhookController {
         this.logger.log('Processing contact webhook event(s)');
         break;
       case 'deal.creation':
+      case 'deal.propertyChange':
         processed =
           await this.webhookService.processDealCreationWebhook(payload);
         this.logger.log('Processing deal creation webhook event(s)');

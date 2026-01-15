@@ -16,6 +16,7 @@ import { DealsModule } from './deals/deals.module';
 import { LineItemsModule } from './line-items/line-items.module';
 import { HubSpotModule } from './modules/hubspot/hubspot.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
+import { MocaModule } from './modules/moca/moca.module';
 import { LoggerService } from './shared/services/logger.service';
 
 @Module({
@@ -45,6 +46,7 @@ import { LoggerService } from './shared/services/logger.service';
     LineItemsModule,
     WebhookModule,
     HubSpotModule,
+    MocaModule,
   ],
   controllers: [AppController],
   providers: [
