@@ -1,4 +1,5 @@
 import { HubSpotService } from '@modules/hubspot/hubspot.service';
+import { MocaService } from '@modules/moca/moca.service';
 import {
   Body,
   Controller,
@@ -13,44 +14,54 @@ import {
 import { MocaSignatureGuard } from '@/common/guards/moca-signature.guard';
 import { LoggerService } from '../../shared/services/logger.service';
 import { MocaWebhookEventDto } from './dto/moca-webhook.dto';
-import { MocaContactPropertiesDto } from './dto/moca-contact-properties.dto';
 
 export type ResponseMocaWebHook = {
-  status?: boolean;
-  type?: string;
+  status: boolean;
+  action: string;
   id?: string | null;
   date?: number;
   message?: string;
 };
 
 /**
- * Controller for HubSpot webhook endpoints
+ * Controller for Moca webhook endpoints
  * Responsibility: HTTP layer only - route handling, guards, validation
- * Business logic is delegated to WebhookService
+ * Business logic is delegated to HubSpotService
  */
 @Controller('moca')
+@UseGuards(MocaSignatureGuard)
 export class SyncController {
+  private readonly handlers: Record<
+    string,
+    (payload: MocaWebhookEventDto) => Promise<ResponseMocaWebHook>
+  >;
+
   constructor(
     private readonly logger: LoggerService,
     private readonly hubSpotService: HubSpotService,
+    private readonly mocaService: MocaService,
   ) {
     this.logger.setContext('SyncController');
+    this.handlers = {
+      POST: this.createContact.bind(this),
+      PATCH: this.updateContact.bind(this),
+      DELETE: this.deleteContact.bind(this),
+    };
   }
 
   /**
-   * Endpoint to receive HubSpot contact webhooks
-   * POST /webhooks/hubspot
+   * Endpoint to receive Moca contact webhooks
+   * POST /moca/sync
    *
-   * Protected by HubSpotSignatureGuard for security
-   * Validates payload structure with HubSpotWebhookEventDto
-   * HubSpot sends an array of events
+   * Protected by MocaSignatureGuard for security
+   * Validates payload structure with MocaWebhookEventDto
+   * Moca sends an array of events
    *
-   * @param payload - Array of webhook events from HubSpot
+   * @param payload - Array of webhook events from Moca
    * @returns Success response
    */
   @Post('sync')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(MocaSignatureGuard)
   async handleHubSpotWebhook(
     @Body(
       new ParseArrayPipe({
@@ -60,35 +71,27 @@ export class SyncController {
       }),
     )
     payload: MocaWebhookEventDto[],
-  ): Promise<ResponseMocaWebHook | Record<string, unknown>> {
+  ): Promise<ResponseMocaWebHook> {
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
 
-    let response: ResponseMocaWebHook = {};
+    let response = {} as ResponseMocaWebHook;
 
     for (const currentPayload of payload) {
       this.logger.debug(`Processing event: ${JSON.stringify(currentPayload)}`);
-      switch (currentPayload?.action) {
-        case 'POST':
-          response = await this.createContact(currentPayload);
-          break;
-        case 'PATCH':
-          response = await this.updateContact(currentPayload);
-          break;
-        case 'DELETE':
-          return {
-            status: true,
-            type: currentPayload?.action,
-            id: '126',
-            date: Date.now(),
-          };
-        default:
-          this.logger.warn(
-            `Unhandled subscription type: ${currentPayload?.action}`,
-          );
-          return response;
+      const handler = this.handlers[currentPayload?.action];
+
+      if (handler) {
+        response = await handler(currentPayload);
+      } else {
+        this.logger.warn(
+          `Unhandled subscription action: ${currentPayload?.action}`,
+        );
+        throw new HttpException(
+          'Non supported action',
+          HttpStatus.BAD_REQUEST,
+        );
       }
-      // Process each payload item here
     }
     return response;
   }
@@ -129,7 +132,7 @@ export class SyncController {
 
     return {
       status: contactIdCreated ? true : false,
-      type: currentPayload?.action,
+      action: currentPayload?.action,
       id: contactIdCreated,
       date: Date.now(),
     };
@@ -138,14 +141,12 @@ export class SyncController {
   async updateContact(
     currentPayload: MocaWebhookEventDto,
   ): Promise<ResponseMocaWebHook> {
-    const isContactValid = currentPayload.objectId === undefined;
-
-    if (isContactValid) {
+    if (!currentPayload.objectId) {
       this.logger.warn(
-        `Invalid contact data: ${JSON.stringify(currentPayload.properties)}`,
+        `Missing objectId in payload: ${JSON.stringify(currentPayload)}`,
       );
       throw new HttpException(
-        'Contact must have at least an objectId!',
+        'Contact must have an objectId!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
@@ -159,7 +160,10 @@ export class SyncController {
         HttpStatus.NOT_FOUND,
       );
     }
-    const formattedProperties = {...currentPayload.properties, email: isEmailExisting.email};
+    const formattedProperties = {
+      ...currentPayload.properties,
+      email: isEmailExisting.email,
+    };
 
     const contactUpdated = await this.hubSpotService.updateContact(
       currentPayload.objectId,
@@ -168,19 +172,80 @@ export class SyncController {
 
     return {
       status: contactUpdated ? true : false,
-      type: currentPayload?.action,
+      action: currentPayload?.action,
       id: contactUpdated,
       date: Date.now(),
     };
   }
 
+  async deleteContact(
+    currentPayload: MocaWebhookEventDto,
+  ): Promise<ResponseMocaWebHook> {
+    if (!currentPayload.objectId) {
+      this.logger.warn(
+        `Missing objectId in payload: ${JSON.stringify(currentPayload)}`,
+      );
+      throw new HttpException(
+        'Contact must have an objectId for deletion!',
+        HttpStatus.PRECONDITION_FAILED,
+      );
+    }
+
+    this.logger.log(`Deleting contact: ${currentPayload.objectId}`);
+
+    const contactExists = await this.hubSpotService.getContactById(
+      currentPayload.objectId,
+    );
+
+    if (!contactExists) {
+      throw new HttpException(
+        'Contact does not exist in HubSpot!',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const deleted = await this.hubSpotService.deleteContact(
+      currentPayload.objectId,
+    );
+
+    return {
+      status: deleted,
+      action: currentPayload?.action,
+      id: currentPayload.objectId,
+      date: Date.now(),
+      message: deleted
+        ? 'Contact deleted successfully'
+        : 'Failed to delete contact',
+    };
+  }
+
   /**
    * Health check endpoint for webhooks
-   * GET /webhooks/health
+   * GET /moca/check-app-api
    */
-  @Post('health')
+  @Post('check-app-api')
   @HttpCode(HttpStatus.OK)
-  healthCheck(): { status: string } {
-    return { status: 'ok' };
+  async healthCheck(): Promise<{ status: string; }> {
+    const response = await this.mocaService.ping();
+    return { status: response ? 'ok' : 'unavailable' };
+  }
+
+  /**
+   * Health check endpoint for webhooks
+   * GET /moca/check-hubspot-api
+   */
+  @Post('check-hubspot-api')
+  @HttpCode(HttpStatus.OK)
+  async healthCheckHubSpotApi(): Promise<{ status: string }> {
+    try {
+      const response = await this.hubSpotService.checkHubSpotStatus();
+      return { status: response ? 'ok' : 'unavailable' };
+    } catch (error) {
+      this.logger.error('HubSpot API health check failed', error);
+      throw new HttpException(
+        'HubSpot API is not available',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 }

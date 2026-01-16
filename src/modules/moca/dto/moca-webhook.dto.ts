@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsValidAppId } from '@/common/validators/is-valid-app-id.validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { MocaContactPropertiesDto } from './moca-contact-properties.dto';
 
 /**
@@ -29,9 +36,9 @@ export class MocaWebhookEventDto {
   @IsNotEmpty()
   eventId: number;
 
-  @IsString()
+  @IsValidAppId()
   @IsNotEmpty()
-  appId: 'MOCA-SYNC';
+  appId: string;
 
   @IsNumber()
   @IsNotEmpty()
@@ -39,18 +46,21 @@ export class MocaWebhookEventDto {
 
   @IsString()
   @IsNotEmpty()
-  action: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  @IsIn(['POST', 'DELETE', 'PATCH'])
+  action: 'POST' | 'DELETE' | 'PATCH';
 
   @IsString()
   @IsNotEmpty()
+  @IsIn(['CONTACT'])
   objectType: 'CONTACT';
 
   @IsNumber()
   @IsNotEmpty()
   attemptNumber: number;
 
+  @ValidateIf((o) => o.action !== 'POST')
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   objectId: string;
 
   @IsNotEmpty()

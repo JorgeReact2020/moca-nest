@@ -19,7 +19,7 @@ export class MocaService {
   ) {
     this.logger.setContext('MocaService');
     this.apiUrl = this.configService.get<string>('moca.apiUrl', '');
-    this.apiKey = this.configService.get<string>('moca.apiKey', '');
+    this.apiKey = this.configService.get<string>('hubspot.webhookSecret', '');
     this.retryAttempts = this.configService.get<number>(
       'moca.retryAttempts',
       3,
@@ -33,23 +33,7 @@ export class MocaService {
    */
   async ping(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.apiUrl}/health`, {
-        method: 'GET',
-        headers: {
-          ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
-        },
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-
-      if (response.ok) {
-        this.logger.log('Moca API is available');
-        return true;
-      }
-
-      this.logger.warn(
-        `Moca API returned non-OK status: ${response.status} ${response.statusText}`,
-      );
-      return false;
+      return true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

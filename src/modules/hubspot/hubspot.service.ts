@@ -1,10 +1,13 @@
 import hubspotConfig from '@/config/hubspot.config';
 import { Client } from '@hubspot/api-client';
+import {
+  FilterOperatorEnum,
+  PublicObjectSearchRequest,
+} from '@hubspot/api-client/lib/codegen/crm/companies';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
 import { MocaContactPropertiesDto } from '../moca/dto/moca-contact-properties.dto';
-import { FilterOperatorEnum, PublicObjectSearchRequest } from '@hubspot/api-client/lib/codegen/crm/companies';
 /**
  * Interface for HubSpot contact data
  */
@@ -88,6 +91,15 @@ export class HubSpotService {
           `Attempt ${attempt}/${this.retryAttempts} failed for contact ${contactId}: ${errorMessage}`,
         );
 
+        // Handle not found (404)
+        if (lastError.message.includes('404')) {
+          this.logger.error(`Contact not found in HubSpot: ${contactId}`);
+          throw new HttpException(
+            `Contact ${contactId} not found in HubSpot`,
+            HttpStatus.NOT_FOUND,
+          );
+        }
+
         // Handle rate limiting (429)
         const errorResponse = error as {
           response?: { status?: number; headers?: Record<string, string> };
@@ -102,15 +114,6 @@ export class HubSpotService {
 
           await this.sleep(waitTime);
           continue;
-        }
-
-        // Handle not found (404)
-        if (errorResponse.response?.status === 404) {
-          this.logger.error(`Contact not found in HubSpot: ${contactId}`);
-          throw new HttpException(
-            `Contact ${contactId} not found in HubSpot`,
-            HttpStatus.NOT_FOUND,
-          );
         }
 
         // Retry with exponential backoff for other errors
@@ -440,7 +443,6 @@ export class HubSpotService {
       email: properties.email,
     });
 
-
     try {
       const response = await this.hubspotClient.crm.contacts.basicApi.create({
         properties: { ...properties },
@@ -448,7 +450,6 @@ export class HubSpotService {
 
       this.logger.log(`Successfully created contact with ID: ${response.id}`);
       return response.id;
-
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -503,7 +504,6 @@ export class HubSpotService {
     }
   }
 
-
   /**
    * Search for a contact by email address
    * @param email - Email address to search for
@@ -554,34 +554,69 @@ export class HubSpotService {
   }
 
   /**
-   * Create or update a contact in HubSpot
-   * @param method - HTTP method ('POST' for create, 'PATCH' for update)
-   * @param properties - Contact properties
-   * @param contactId - HubSpot contact ID (required for PATCH)
-   * @returns Contact ID
+   * Delete a contact from HubSpot
+   * @param contactId - HubSpot contact ID to delete
+   * @returns true if successfully deleted
    */
-  /*   async upsertContact(
-    method: 'POST' | 'PATCH',
-    properties: Record<string, string>,
-    contactId?: string,
-  ): Promise<string> {
-    if (method === 'POST') {
-      return this.createContact(properties);
-    }
+  async deleteContact(contactId: string): Promise<boolean> {
+    this.logger.log(`Deleting contact from HubSpot: ${contactId}`);
 
-    if (method === 'PATCH') {
-      if (!contactId) {
+    try {
+      await this.hubspotClient.crm.contacts.basicApi.archive(contactId);
+
+      this.logger.log(`Successfully deleted contact: ${contactId}`);
+      return true;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to delete contact ${contactId}: ${errorMessage}`,
+      );
+
+      const errorResponse = error as { response?: { status?: number } };
+      if (errorResponse.response?.status === 404) {
         throw new HttpException(
-          'Contact ID is required for PATCH method',
-          HttpStatus.BAD_REQUEST,
+          `Contact ${contactId} not found in HubSpot`,
+          HttpStatus.NOT_FOUND,
         );
       }
-      return this.updateContact(contactId, properties);
-    }
 
-    throw new HttpException(
-      'Invalid method. Use POST or PATCH',
-      HttpStatus.BAD_REQUEST,
-    );
-  } */
+      throw new HttpException(
+        `Failed to delete contact ${contactId}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+
+  /**
+   * Check if HubSpot API is accessible and running
+   * @returns true if HubSpot is accessible, false otherwise
+   */
+  async checkHubSpotStatus(): Promise<boolean> {
+    this.logger.log('Checking HubSpot API status');
+
+    try {
+      const response = await fetch('https://api.hubapi.com/account-info/v3/details', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${this.hubSpotKeys.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`HubSpot API returned status: ${response.status}`);
+        return false;
+      }
+
+      const data = await response.json();
+      this.logger.log('HubSpot API is accessible');
+
+      return true;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`HubSpot API is not accessible: ${errorMessage}`);
+      return false;
+    }
+  }
 }

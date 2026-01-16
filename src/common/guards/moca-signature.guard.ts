@@ -72,23 +72,14 @@ export class MocaSignatureGuard implements CanActivate {
       return true;
     }
 
-    // Skip validation if no secret is configured (for development)
-    if (!this.webhookSecret) {
-      this.logger.warn('Signature verification skipped - no secret configured');
-      return true;
-    }
 
     // Signature header is required
     if (!signature) {
       this.logger.error('Missing X-Moca-Signature header');
-      throw new UnauthorizedException('Missing signature header');
+      throw new UnauthorizedException('Missing credentials');
     }
 
     try {
-      // Compute expected signature using SHA-256 (v1 method)
-
-      this.logger.debug(`Expected signature: ${this.webhookSecret}`);
-      this.logger.debug(`Received signature: ${this.webhookSecret}`);
 
       // Compare signatures using timing-safe comparison
       const isValid = signature === this.webhookSecret;

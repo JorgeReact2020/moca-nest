@@ -7,12 +7,16 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { useContainer } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
   );
+
+  // Enable DI for class-validator
+  useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   // Enable validation globally
   app.useGlobalPipes(
