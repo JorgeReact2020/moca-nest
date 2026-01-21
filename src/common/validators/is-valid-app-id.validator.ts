@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   registerDecorator,
-  ValidationArguments,
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -13,14 +12,14 @@ import {
 export class IsValidAppIdConstraint implements ValidatorConstraintInterface {
   constructor(private configService: ConfigService) {}
 
-  validate(value: any, args: ValidationArguments): boolean {
+  validate(value: any): boolean {
     const validAppId = this.configService.get<string>('config.appid', '');
     return typeof value === 'string' && value === validAppId;
   }
 
-  defaultMessage(args: ValidationArguments): string {
+  defaultMessage(): string {
     // Generic message - doesn't expose valid values
-    return 'Invalid application identifier';
+    return 'INVALID APPLICATION IDENTIFIER';
   }
 }
 

@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 /**
  * DTO for a single HubSpot webhook event

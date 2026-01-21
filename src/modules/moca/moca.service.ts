@@ -33,7 +33,7 @@ export class MocaService {
    */
   async ping(): Promise<boolean> {
     try {
-      return true;
+      return await Promise.resolve(true);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

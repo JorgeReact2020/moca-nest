@@ -50,7 +50,7 @@ export class MocaWebhookEventDto {
   @IsIn(['POST', 'DELETE', 'PATCH', 'GET'])
   action: 'POST' | 'DELETE' | 'PATCH' | 'GET';
 
-  @ValidateIf((o) => o.action === 'GET')
+  @ValidateIf((o: MocaWebhookEventDto) => o.action === 'GET')
   @IsEmail()
   @IsString()
   emailSearch: string;
@@ -64,7 +64,7 @@ export class MocaWebhookEventDto {
   @IsNotEmpty()
   attemptNumber: number;
 
-  @ValidateIf((o) => o.action !== 'POST')
+  @ValidateIf((o: MocaWebhookEventDto) => o.action !== 'POST')
   @IsString()
   @IsNotEmpty()
   objectId: string;

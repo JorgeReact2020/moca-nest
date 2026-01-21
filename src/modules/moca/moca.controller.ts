@@ -43,10 +43,18 @@ export class SyncController {
   ) {
     this.logger.setContext('SyncController');
     this.handlers = {
-      POST: this.createContact.bind(this),
-      PATCH: this.updateContact.bind(this),
-      DELETE: this.deleteContact.bind(this),
-      GET: this.SearchContactByEmail.bind(this),
+      POST: this.createContact.bind(this) as (
+        payload: MocaWebhookEventDto,
+      ) => Promise<ResponseMocaWebHook>,
+      PATCH: this.updateContact.bind(this) as (
+        payload: MocaWebhookEventDto,
+      ) => Promise<ResponseMocaWebHook>,
+      DELETE: this.deleteContact.bind(this) as (
+        payload: MocaWebhookEventDto,
+      ) => Promise<ResponseMocaWebHook>,
+      GET: this.SearchContactByEmail.bind(this) as (
+        payload: MocaWebhookEventDto,
+      ) => Promise<ResponseMocaWebHook>,
     };
   }
 
@@ -73,14 +81,15 @@ export class SyncController {
     )
     payload: MocaWebhookEventDto[],
   ): Promise<ResponseMocaWebHook> {
-
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
 
     let response = {} as ResponseMocaWebHook;
 
     for (const currentPayload of payload) {
-      this.logger.debug(`===================== Processing event: ${currentPayload.eventId}===============================`);
+      this.logger.debug(
+        `===================== Processing event: ${currentPayload.eventId}===============================`,
+      );
       const handler = this.handlers[currentPayload?.action];
 
       if (handler) {
@@ -239,7 +248,7 @@ export class SyncController {
     try {
       const response = await this.hubSpotService.checkHubSpotStatus();
       return { status: response ? 'ok' : 'unavailable' };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('HubSpot API health check failed', error);
       throw new HttpException(
         'HubSpot API is not available',
@@ -248,19 +257,20 @@ export class SyncController {
     }
   }
 
-
   @HttpCode(HttpStatus.OK)
   async SearchContactByEmail(
     currentPayload: MocaWebhookEventDto,
   ): Promise<ResponseMocaWebHook> {
     try {
-      const response = await this.hubSpotService.searchContactByEmail(currentPayload.emailSearch);
+      const response = await this.hubSpotService.searchContactByEmail(
+        currentPayload.emailSearch,
+      );
       return {
-      status: response ? true : false,
-      action: currentPayload?.action,
-      id: response ? response : undefined,
-      date: Date.now(),
-    };
+        status: response ? true : false,
+        action: currentPayload?.action,
+        id: response ? response : undefined,
+        date: Date.now(),
+      };
     } catch (error) {
       this.logger.error('HubSpot API health check failed', error);
       throw new HttpException(

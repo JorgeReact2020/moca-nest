@@ -437,7 +437,7 @@ export class HubSpotService {
     this.logger.log('Creating new contact in HubSpot');
     this.logger.debug(`Contact properties: ${JSON.stringify(properties)}`);
 
-    const isContactValid = this.validateContactData({
+    this.validateContactData({
       firstname: properties.firstname || '',
       lastname: properties.lastname || '',
       email: properties.email,
@@ -610,12 +610,10 @@ export class HubSpotService {
         this.logger.warn(`HubSpot API returned status: ${response.status}`);
         return false;
       }
-
-      const data = await response.json();
+      await response.json();
       this.logger.log('HubSpot API is accessible');
-
       return true;
-    } catch (error: unknown) {
+    } catch (error: any) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`HubSpot API is not accessible: ${errorMessage}`);
