@@ -248,8 +248,10 @@ export class SyncController {
     try {
       const response = await this.hubSpotService.checkHubSpotStatus();
       return { status: response ? 'ok' : 'unavailable' };
-    } catch (error: any) {
-      this.logger.error('HubSpot API health check failed', error);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Internal server error';
+      this.logger.error('HubSpot API health check failed', errorMessage);
       throw new HttpException(
         'HubSpot API is not available',
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -271,8 +273,10 @@ export class SyncController {
         id: response ? response : undefined,
         date: Date.now(),
       };
-    } catch (error) {
-      this.logger.error('HubSpot API health check failed', error);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Internal server error';
+      this.logger.error('HubSpot API health check failed', errorMessage);
       throw new HttpException(
         'HubSpot API is not available',
         HttpStatus.SERVICE_UNAVAILABLE,
