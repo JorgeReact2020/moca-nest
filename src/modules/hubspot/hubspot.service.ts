@@ -588,7 +588,6 @@ export class HubSpotService {
     }
   }
 
-
   /**
    * Check if HubSpot API is accessible and running
    * @returns true if HubSpot is accessible, false otherwise
@@ -597,12 +596,15 @@ export class HubSpotService {
     this.logger.log('Checking HubSpot API status');
 
     try {
-      const response = await fetch('https://api.hubapi.com/account-info/v3/details', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${this.hubSpotKeys.apiKey}`,
+      const response = await fetch(
+        'https://api.hubapi.com/account-info/v3/details',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.hubSpotKeys.apiKey}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         this.logger.warn(`HubSpot API returned status: ${response.status}`);
@@ -614,7 +616,8 @@ export class HubSpotService {
 
       return true;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`HubSpot API is not accessible: ${errorMessage}`);
       return false;
     }

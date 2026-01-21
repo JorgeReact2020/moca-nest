@@ -18,8 +18,8 @@ import { MocaWebhookEventDto } from './dto/moca-webhook.dto';
 export type ResponseMocaWebHook = {
   status: boolean;
   action: string;
-  id?: string | null;
-  date?: number;
+  id?: string;
+  date: number;
   message?: string;
 };
 
@@ -46,6 +46,7 @@ export class SyncController {
       POST: this.createContact.bind(this),
       PATCH: this.updateContact.bind(this),
       DELETE: this.deleteContact.bind(this),
+      GET: this.SearchContactByEmail.bind(this),
     };
   }
 
@@ -72,13 +73,14 @@ export class SyncController {
     )
     payload: MocaWebhookEventDto[],
   ): Promise<ResponseMocaWebHook> {
+
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
 
     let response = {} as ResponseMocaWebHook;
 
     for (const currentPayload of payload) {
-      this.logger.debug(`Processing event: ${JSON.stringify(currentPayload)}`);
+      this.logger.debug(`===================== Processing event: ${currentPayload.eventId}===============================`);
       const handler = this.handlers[currentPayload?.action];
 
       if (handler) {
@@ -87,10 +89,7 @@ export class SyncController {
         this.logger.warn(
           `Unhandled subscription action: ${currentPayload?.action}`,
         );
-        throw new HttpException(
-          'Non supported action',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new HttpException('Non supported action', HttpStatus.BAD_REQUEST);
       }
     }
     return response;
@@ -225,7 +224,7 @@ export class SyncController {
    */
   @Post('check-app-api')
   @HttpCode(HttpStatus.OK)
-  async healthCheck(): Promise<{ status: string; }> {
+  async healthCheck(): Promise<{ status: string }> {
     const response = await this.mocaService.ping();
     return { status: response ? 'ok' : 'unavailable' };
   }
@@ -240,6 +239,28 @@ export class SyncController {
     try {
       const response = await this.hubSpotService.checkHubSpotStatus();
       return { status: response ? 'ok' : 'unavailable' };
+    } catch (error) {
+      this.logger.error('HubSpot API health check failed', error);
+      throw new HttpException(
+        'HubSpot API is not available',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+
+  @HttpCode(HttpStatus.OK)
+  async SearchContactByEmail(
+    currentPayload: MocaWebhookEventDto,
+  ): Promise<ResponseMocaWebHook> {
+    try {
+      const response = await this.hubSpotService.searchContactByEmail(currentPayload.emailSearch);
+      return {
+      status: response ? true : false,
+      action: currentPayload?.action,
+      id: response ? response : undefined,
+      date: Date.now(),
+    };
     } catch (error) {
       this.logger.error('HubSpot API health check failed', error);
       throw new HttpException(

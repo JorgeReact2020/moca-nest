@@ -24,8 +24,6 @@ import { IsString, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
  * ]
  */
 export class MocaContactPropertiesDto {
-
-
   @IsString()
   @IsOptional()
   email: string;

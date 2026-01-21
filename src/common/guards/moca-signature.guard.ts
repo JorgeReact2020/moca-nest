@@ -72,7 +72,6 @@ export class MocaSignatureGuard implements CanActivate {
       return true;
     }
 
-
     // Signature header is required
     if (!signature) {
       this.logger.error('Missing X-Moca-Signature header');
@@ -80,7 +79,6 @@ export class MocaSignatureGuard implements CanActivate {
     }
 
     try {
-
       // Compare signatures using timing-safe comparison
       const isValid = signature === this.webhookSecret;
 

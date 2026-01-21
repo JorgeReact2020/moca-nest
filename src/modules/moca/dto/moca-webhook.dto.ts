@@ -1,5 +1,6 @@
 import { IsValidAppId } from '@/common/validators/is-valid-app-id.validator';
 import {
+  IsEmail,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -46,8 +47,13 @@ export class MocaWebhookEventDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsIn(['POST', 'DELETE', 'PATCH'])
-  action: 'POST' | 'DELETE' | 'PATCH';
+  @IsIn(['POST', 'DELETE', 'PATCH', 'GET'])
+  action: 'POST' | 'DELETE' | 'PATCH' | 'GET';
+
+  @ValidateIf((o) => o.action === 'GET')
+  @IsEmail()
+  @IsString()
+  emailSearch: string;
 
   @IsString()
   @IsNotEmpty()
