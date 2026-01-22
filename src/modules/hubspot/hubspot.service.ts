@@ -455,8 +455,8 @@ export class HubSpotService {
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to create contact: ${errorMessage}`);
       throw new HttpException(
-        'Failed to create contact in HubSpot',
-        HttpStatus.CONFLICT,
+        `Failed to create contact in HubSpot. Make sure all properties are valid. ${errorMessage}`,
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

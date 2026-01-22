@@ -22,16 +22,16 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<{
       method: string;
       url: string;
-      body: unknown;
-      headers: Record<string, string>;
+      //body: unknown;
+      //headers: Record<string, string>;
     }>();
-    const { method, url, body, headers } = request;
+    const { method, url /*body,*/ /*headers*/ } = request;
     const startTime = Date.now();
 
     // Log incoming request
     this.logger.log(`Incoming ${method} ${url}`, 'HTTP');
-    this.logger.debug(`Request body: ${JSON.stringify(body)}`, 'HTTP');
-    this.logger.debug(`Request headers: ${JSON.stringify(headers)}`, 'HTTP');
+    //this.logger.debug(`Request body: ${JSON.stringify(body)}`, 'HTTP');
+    //this.logger.debug(`Request headers: ${JSON.stringify(headers)}`, 'HTTP');
 
     return next.handle().pipe(
       tap({

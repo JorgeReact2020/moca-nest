@@ -68,7 +68,7 @@ export class HubSpotSignatureGuard implements CanActivate {
         : JSON.stringify(request.body);
 
     this.logger.log('Verifying HubSpot webhook signature');
-    this.logger.debug(`Request body: ${requestBody}`);
+    //this.logger.debug(`Request body: ${requestBody}`);
 
     // Bypass signature verification if APP_MODE is not 'production'
     if (this.appMode !== 'production') {

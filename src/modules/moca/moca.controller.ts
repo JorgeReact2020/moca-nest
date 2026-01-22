@@ -107,13 +107,12 @@ export class SyncController {
     payload: MocaWebhookEventDto[],
   ): Promise<ResponseMocaWebHook> {
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
-    this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
 
     let response = {} as ResponseMocaWebHook;
 
     for (const currentPayload of payload) {
-      this.logger.debug(
-        `===================== Processing event: ${currentPayload.eventId}===============================`,
+      this.logger.log(
+        `\n\nEVENT: ${currentPayload.eventId} --- ACTION : ${currentPayload.action}`,
       );
       const handler = this.handlers[currentPayload?.action];
 
@@ -125,7 +124,9 @@ export class SyncController {
         );
         throw new HttpException('Non supported action', HttpStatus.BAD_REQUEST);
       }
+      this.logger.log(`END EVENT: ${currentPayload.eventId}`);
     }
+
     return response;
   }
 

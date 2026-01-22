@@ -61,7 +61,9 @@ export class MocaSignatureGuard implements CanActivate {
         ? request.body
         : JSON.stringify(request.body);
 
-    this.logger.log('Verifying Moca webhook signature');
+    this.logger.log(
+      '==============Verifying Moca webhook signature==============',
+    );
     this.logger.debug(`Request body: ${requestBody}`);
 
     // Bypass signature verification if APP_MODE is not 'production'
