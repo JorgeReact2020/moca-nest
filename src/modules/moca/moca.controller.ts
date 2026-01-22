@@ -10,10 +10,25 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-//import { HubSpotSignatureGuard } from '../../common/guards/hubspot-signature.guard';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiSecurity,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { MocaSignatureGuard } from '@/common/guards/moca-signature.guard';
 import { LoggerService } from '../../shared/services/logger.service';
 import { MocaWebhookEventDto } from './dto/moca-webhook.dto';
+import {
+  MOCA_SIGNATURE_HEADER,
+  COMMON_RESPONSES,
+  WEBHOOK_SYNC_OPERATION,
+  WEBHOOK_SYNC_BODY,
+  CHECK_MOCA_API_OPERATION,
+  CHECK_HUBSPOT_API_OPERATION,
+} from './documentation/swagger-doc';
 
 export type ResponseMocaWebHook = {
   status: boolean;
@@ -28,6 +43,8 @@ export type ResponseMocaWebHook = {
  * Responsibility: HTTP layer only - route handling, guards, validation
  * Business logic is delegated to HubSpotService
  */
+@ApiTags('Moca Integration')
+@ApiSecurity('moca-signature')
 @Controller('moca')
 @UseGuards(MocaSignatureGuard)
 export class SyncController {
@@ -69,6 +86,14 @@ export class SyncController {
    * @param payload - Array of webhook events from Moca
    * @returns Success response
    */
+  @ApiOperation(WEBHOOK_SYNC_OPERATION)
+  @ApiHeader(MOCA_SIGNATURE_HEADER)
+  @ApiBody(WEBHOOK_SYNC_BODY)
+  @ApiResponse(COMMON_RESPONSES.SUCCESS_200)
+  @ApiResponse(COMMON_RESPONSES.BAD_REQUEST_400)
+  @ApiResponse(COMMON_RESPONSES.NOT_FOUND_404)
+  @ApiResponse(COMMON_RESPONSES.CONFLICT_409)
+  @ApiResponse(COMMON_RESPONSES.PRECONDITION_FAILED_412)
   @Post('sync')
   @HttpCode(HttpStatus.OK)
   async handleHubSpotWebhook(
@@ -229,8 +254,11 @@ export class SyncController {
 
   /**
    * Health check endpoint for webhooks
-   * GET /moca/check-app-api
+   * POST /moca/check-app-api
    */
+  @ApiOperation(CHECK_MOCA_API_OPERATION)
+  @ApiHeader(MOCA_SIGNATURE_HEADER)
+  @ApiResponse(COMMON_RESPONSES.HEALTH_CHECK_SUCCESS)
   @Post('check-app-api')
   @HttpCode(HttpStatus.OK)
   async healthCheck(): Promise<{ status: string }> {
@@ -240,8 +268,12 @@ export class SyncController {
 
   /**
    * Health check endpoint for webhooks
-   * GET /moca/check-hubspot-api
+   * POST /moca/check-hubspot-api
    */
+  @ApiOperation(CHECK_HUBSPOT_API_OPERATION)
+  @ApiHeader(MOCA_SIGNATURE_HEADER)
+  @ApiResponse(COMMON_RESPONSES.HEALTH_CHECK_SUCCESS)
+  @ApiResponse(COMMON_RESPONSES.SERVICE_UNAVAILABLE_503)
   @Post('check-hubspot-api')
   @HttpCode(HttpStatus.OK)
   async healthCheckHubSpotApi(): Promise<{ status: string }> {

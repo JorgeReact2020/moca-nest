@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import {
   FastifyAdapter,
@@ -29,6 +30,26 @@ async function bootstrap() {
       enableDebugMessages: true, // Enable debug messages
     }),
   );
+
+  // Swagger documentation setup
+  const config = new DocumentBuilder()
+    .setTitle('Moca-NestJS Integration API')
+    .setDescription(
+      'API for synchronizing contacts between Moca and HubSpot via webhooks',
+    )
+    .setVersion('1.0')
+    .addTag('Moca Integration', 'Endpoints for Moca webhook integration')
+    .addSecurity('moca-signature', {
+      type: 'apiKey',
+      in: 'header',
+      name: 'X-Moca-Signature',
+      description: 'Moca webhook signature for request verification',
+    })
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
   const configService = app.get(ConfigService);
   const port = configService.get<string>('config.port') || 3000;
   await app.listen(port, '0.0.0.0');

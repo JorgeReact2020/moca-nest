@@ -1,37 +1,34 @@
 import { IsString, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
- * DTO for a single HubSpot webhook event
- *
- * HubSpot sends an ARRAY of these objects directly (not wrapped)
- *
- * Example payload from HubSpot:
- * [
- *   {
- *     "eventId": 714285774,
- *     "subscriptionId": 4849549,
- *     "portalId": 50687303,
- *     "appId": 25681700,
- *     "occurredAt": 1765043528476,
- *     "subscriptionType": "contact.propertyChange",
- *     "attemptNumber": 0,
- *     "objectId": 173595202426,
- *     "propertyName": "firstname",
- *     "propertyValue": "Briane",
- *     "changeSource": "CRM_UI",
- *     "sourceId": "userId:10202051"
- *   }
- * ]
+ * DTO for contact properties
+ * Contains the contact fields that can be synchronized between Moca and HubSpot
  */
 export class MocaContactPropertiesDto {
+  @ApiProperty({
+    description: 'Contact email address',
+    example: 'john.doe@example.com',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   email: string;
 
+  @ApiProperty({
+    description: 'Contact first name',
+    example: 'John',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   firstname: string;
 
+  @ApiProperty({
+    description: 'Contact last name',
+    example: 'Doe',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   lastname: string;
