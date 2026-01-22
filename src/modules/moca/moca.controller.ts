@@ -43,7 +43,7 @@ export type ResponseMocaWebHook = {
  * Responsibility: HTTP layer only - route handling, guards, validation
  * Business logic is delegated to HubSpotService
  */
-@ApiTags('Moca Integration')
+@ApiTags('Moca-HubSpot Integration')
 @ApiSecurity('moca-signature')
 @Controller('moca')
 @UseGuards(MocaSignatureGuard)
