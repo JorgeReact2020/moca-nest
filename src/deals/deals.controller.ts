@@ -9,10 +9,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { DealsService } from './deals.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
 
+@ApiExcludeController()
 @Controller('deals')
 export class DealsController {
   constructor(private readonly dealsService: DealsService) {}

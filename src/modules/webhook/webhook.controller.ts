@@ -6,6 +6,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { HubSpotSignatureGuard } from '../../common/guards/hubspot-signature.guard';
 import { LoggerService } from '../../shared/services/logger.service';
 import { HubSpotWebhookEventDto } from './dto/hubspot-webhook.dto';
@@ -16,6 +17,7 @@ import { WebhookService } from './webhook.service';
  * Responsibility: HTTP layer only - route handling, guards, validation
  * Business logic is delegated to WebhookService
  */
+@ApiExcludeController()
 @Controller('webhooks')
 export class WebhookController {
   constructor(

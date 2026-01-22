@@ -8,11 +8,13 @@ import {
   Param,
   HttpCode,
 } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { ContactsService } from './contacts.service';
 import { Contact } from './contact.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 
+@ApiExcludeController()
 @Controller('contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}

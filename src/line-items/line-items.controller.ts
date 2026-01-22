@@ -9,10 +9,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
 import { LineItemsService } from './line-items.service';
 import { CreateLineItemDto } from './dto/create-line-item.dto';
 import { UpdateLineItemDto } from './dto/update-line-item.dto';
 
+@ApiExcludeController()
 @Controller('line-items')
 export class LineItemsController {
   constructor(private readonly lineItemsService: LineItemsService) {}
