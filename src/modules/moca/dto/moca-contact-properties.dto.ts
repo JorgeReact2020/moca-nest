@@ -13,8 +13,8 @@ export class MocaContactPropertiesDto {
     example: 'john.doe@example.com',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   email: string;
   //==========================
 
@@ -23,8 +23,8 @@ export class MocaContactPropertiesDto {
     example: 'John',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   firstname: string;
   //==========================
   @ApiProperty({
@@ -32,8 +32,8 @@ export class MocaContactPropertiesDto {
     example: 'Doe',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   lastname: string;
   //==========================
   @ApiProperty({
@@ -41,8 +41,8 @@ export class MocaContactPropertiesDto {
     example: 'University',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   ct_institution_type: string;
   //==========================
   @ApiProperty({
@@ -50,9 +50,9 @@ export class MocaContactPropertiesDto {
     example: 'true',
     required: false,
   })
-  @IsIn(['true', 'false'])
-  @IsString()
   @IsOptional()
+  @IsString()
+  @IsIn(['true', 'false'])
   ct_certification_moca_id: string;
   //==========================
   @ApiProperty({
@@ -60,9 +60,9 @@ export class MocaContactPropertiesDto {
     example: 'true',
     required: false,
   })
-  @IsIn(['true', 'false'])
-  @IsString()
   @IsOptional()
+  @IsString()
+  @IsIn(['true', 'false'])
   ct_opt_in_status: string;
   //==========================
   @ApiProperty({
@@ -70,8 +70,8 @@ export class MocaContactPropertiesDto {
     example: '01-01-2024',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   ct_certification_date: string;
   //==========================
   @ApiProperty({
@@ -79,9 +79,9 @@ export class MocaContactPropertiesDto {
     example: 'Academic',
     required: false,
   })
-  @IsIn(['Academic', 'POI'])
-  @IsString()
   @IsOptional()
+  @IsString()
+  @IsIn(['Academic', 'POI'])
   ct_free_training_type: string;
   //==========================
   @ApiProperty({
@@ -89,9 +89,9 @@ export class MocaContactPropertiesDto {
     example: 'Member',
     required: false,
   })
-  @IsIn(['Admin', 'Member'])
-  @IsString()
   @IsOptional()
+  @IsString()
+  @IsIn(['Admin', 'Member'])
   ct_certification_group: string;
   //==========================
   @ApiProperty({
@@ -99,6 +99,8 @@ export class MocaContactPropertiesDto {
     example: 'Researcher',
     required: false,
   })
+  @IsOptional()
+  @IsString()
   @IsIn([
     'HCP',
     'Researcher',
@@ -109,8 +111,6 @@ export class MocaContactPropertiesDto {
     'Individual',
     'None',
   ])
-  @IsString()
-  @IsOptional()
   ct_user_role: string;
   //==========================
   @ApiProperty({
@@ -118,8 +118,8 @@ export class MocaContactPropertiesDto {
     example: '2024-01-01',
     required: false,
   })
-  @IsString()
   @IsOptional()
+  @IsString()
   date_they_registered: string;
   //==========================
   @ApiProperty({
@@ -127,8 +127,8 @@ export class MocaContactPropertiesDto {
     example: 'true',
     required: false,
   })
-  @IsIn(['true', 'false'])
-  @IsString()
   @IsOptional()
+  @IsString()
+  @IsIn(['true', 'false'])
   certification_status: string;
 }

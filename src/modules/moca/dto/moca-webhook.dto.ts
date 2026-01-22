@@ -6,7 +6,9 @@ import {
   IsNumber,
   IsString,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { MocaContactPropertiesDto } from './moca-contact-properties.dto';
 
@@ -121,6 +123,8 @@ export class MocaWebhookEventDto {
     type: () => MocaContactPropertiesDto,
     required: false,
   })
+  @ValidateNested()
+  @Type(() => MocaContactPropertiesDto)
   @IsNotEmpty()
   properties: MocaContactPropertiesDto;
 }
