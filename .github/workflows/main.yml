@@ -42,11 +42,12 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           MOCA_API_KEY: ${{ secrets.MOCA_API_KEY }}
+          APP_ID: ${{ secrets.APP_ID }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          envs: HUBSPOT_API_KEY,HUBSPOT_WEBHOOK_SECRET,DB_HOST,DB_PORT,DB_USERNAME,DB_PASSWORD,DB_DATABASE,MOCA_API_KEY
+          envs: HUBSPOT_API_KEY,HUBSPOT_WEBHOOK_SECRET,DB_HOST,DB_PORT,DB_USERNAME,DB_PASSWORD,DB_DATABASE,MOCA_API_KEY,APP_ID
           script: |
             cd ~/moca-hubspot
 
@@ -101,6 +102,7 @@ jobs:
             # Application Configuration
             APP_MODE=production
             MOCA_API_KEY=${MOCA_API_KEY}
+            APP_ID=${APP_ID}
             EOF
             echo "✅ .env.production created successfully"
 
