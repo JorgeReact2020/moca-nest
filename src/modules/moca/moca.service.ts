@@ -1,4 +1,3 @@
-import { Contact } from '@contacts/contact.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '@shared/services/logger.service';

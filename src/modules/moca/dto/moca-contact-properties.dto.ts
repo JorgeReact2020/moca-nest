@@ -1,11 +1,41 @@
-import { IsString, IsOptional, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsDefined, IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+
+/**
+ * Transform empty strings to null
+ * Useful for optional fields that might receive "" from the database
+ */
+const TransformEmptyToNull = () =>
+  Transform(({ value }: { value: unknown }) => (value === '' ? null : value));
+
+/**
+ * Transform booleans to string representation
+ * Converts true → "true", false → "false", keeps strings as-is, null/undefined → null
+ */
+const TransformBooleanToString = () =>
+  Transform(({ value }: { value: unknown }) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'boolean') return String(value);
+    return value;
+  });
 
 /**
  * DTO for contact properties
  * Contains the contact fields that can be synchronized between Moca and HubSpot
  */
 export class MocaContactPropertiesDto {
+  //==========================
+  @ApiProperty({
+    description: 'Unique identifier from database ex. 454548',
+    required: true,
+  })
+  @Transform(({ value }: { value: number }) => {
+    return String(value);
+  })
+  @IsInt()
+  @IsDefined()
+  id: number;
   //==========================
 
   @ApiProperty({
@@ -16,6 +46,36 @@ export class MocaContactPropertiesDto {
   @IsOptional()
   @IsString()
   email: string;
+  //==========================
+
+  @ApiProperty({
+    description: 'Country',
+    example: 'Canada',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  country?: string;
+  //==========================
+
+  @ApiProperty({
+    description: 'Creation timestamp from Supabase',
+    example: '2026-02-03T20:03:54.638753+00:00',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  created_at?: string;
+  //==========================
+
+  @ApiProperty({
+    description: 'Registration date',
+    example: '2024-01-01',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  registration_date?: string;
   //==========================
 
   @ApiProperty({
@@ -51,6 +111,8 @@ export class MocaContactPropertiesDto {
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
+  @TransformBooleanToString()
   @IsString()
   @IsIn(['true', 'false'])
   ct_certification_moca_id: string;
@@ -61,6 +123,8 @@ export class MocaContactPropertiesDto {
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
+  @TransformBooleanToString()
   @IsString()
   @IsIn(['true', 'false'])
   ct_opt_in_status: string;
@@ -80,6 +144,7 @@ export class MocaContactPropertiesDto {
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
   @IsString()
   @IsIn(['Academic', 'POI'])
   ct_free_training_type: string;
@@ -90,6 +155,7 @@ export class MocaContactPropertiesDto {
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
   @IsString()
   @IsIn(['Admin', 'Member'])
   ct_certification_group: string;
@@ -100,6 +166,7 @@ export class MocaContactPropertiesDto {
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
   @IsString()
   @IsIn([
     'HCP',
@@ -109,6 +176,7 @@ export class MocaContactPropertiesDto {
     'POI',
     'Academic',
     'Individual',
+    'Student',
     'None',
   ])
   ct_user_role: string;
@@ -124,11 +192,11 @@ export class MocaContactPropertiesDto {
   //==========================
   @ApiProperty({
     description: 'Certification status',
-    example: 'true',
+    example: 'Certified',
     required: false,
   })
   @IsOptional()
+  @TransformEmptyToNull()
   @IsString()
-  @IsIn(['true', 'false'])
   certification_status: string;
 }

@@ -4,19 +4,20 @@ import {
   ApiOperationOptions,
   ApiResponseOptions,
 } from '@nestjs/swagger';
-import { MocaWebhookEventDto } from '../dto/moca-webhook.dto';
+import { SupabaseWebhookDto } from '../dto/supabase-webhook.dto';
 
 // ============================================
 // SHARED CONFIGURATION
 // ============================================
 
 export const MOCA_SIGNATURE_HEADER: ApiHeaderOptions = {
-  name: 'x-moca-signature',
-  description: 'SECRET ==> Required signature for webhook verification',
-  required: true,
+  name: 'x-supabase-signature',
+  description:
+    'Required signature for webhook verification (optional if MOCA_WEBHOOK_SECRET not configured)',
+  required: false,
   schema: {
     type: 'string',
-    example: 'c!2qHU&HnHlbn#q8%iKUIymzmGWUJ@#C45oeOyAHJUb1S',
+    example: 'sha256=abc123...',
   },
 };
 
@@ -32,7 +33,7 @@ export const COMMON_RESPONSES = {
       type: 'object',
       properties: {
         status: { type: 'boolean', example: true },
-        action: { type: 'string', example: 'POST' },
+        type: { type: 'string', example: 'INSERT' },
         id: { type: 'string', example: '173595202426' },
         date: { type: 'number', example: 1765043528476 },
         message: { type: 'string', example: 'Contact created successfully' },
@@ -86,78 +87,67 @@ export const COMMON_RESPONSES = {
 // ============================================
 
 export const WEBHOOK_SYNC_OPERATION: ApiOperationOptions = {
-  summary: 'Receive Moca webhook events',
+  summary: 'Receive Supabase database webhook events',
   description:
-    'Processes webhook events from Moca for contact synchronization with HubSpot. Supports POST (create), PATCH (update), DELETE (remove), and GET (search) actions. Requires x-moca-signature header for authentication and appId in the payload for all CONTACT actions.',
+    'Processes database webhook events from Supabase for contact synchronization with HubSpot. ' +
+    'Supports INSERT (create), UPDATE (update with change detection), and DELETE (remove) events. ' +
+    'Automatically adds source_system: "parkour3" to all HubSpot contacts to prevent webhook loops. ' +
+    'UPDATE events only trigger HubSpot updates if properties have actually changed. ',
 };
 
 export const WEBHOOK_SYNC_BODY: ApiBodyOptions = {
-  type: [MocaWebhookEventDto],
-  description: 'Array of webhook events from Moca',
+  type: SupabaseWebhookDto,
+  description: 'Supabase database webhook event payload',
   examples: {
     createContact: {
-      summary: 'Create Contact Event',
-      value: [
-        {
-          eventId: 714285774,
-          appId: '25681700',
-          occurredAt: 1765043528476,
-          action: 'POST',
-          objectType: 'CONTACT',
-          attemptNumber: 0,
-          properties: {
-            firstname: 'John',
-            lastname: 'Doe',
-            email: 'john.doe@example.com',
-          },
+      summary: 'INSERT Event - Create Contact',
+      value: {
+        type: 'INSERT',
+        table: 'parkour3',
+        schema: 'public',
+        record: {
+          id: 'john.doe@example.com',
+          firstname: 'John',
+          lastname: 'Doe',
+          email: 'john.doe@example.com',
         },
-      ],
+        old_record: null,
+      },
     },
     updateContact: {
-      summary: 'Update Contact Event',
-      value: [
-        {
-          eventId: 714285775,
-          appId: '25681700',
-          occurredAt: 1765043528476,
-          action: 'PATCH',
-          objectType: 'CONTACT',
-          attemptNumber: 0,
-          objectId: '173595202426',
-          properties: {
-            firstname: 'Jane',
-            lastname: 'Smith',
-          },
+      summary: 'UPDATE Event - Update Contact',
+      value: {
+        type: 'UPDATE',
+        table: 'parkour3',
+        schema: 'public',
+        record: {
+          id: 'john.doe@example.com',
+          firstname: 'Jane',
+          lastname: 'Smith',
+          email: 'john.doe@example.com',
         },
-      ],
+        old_record: {
+          id: 'john.doe@example.com',
+          firstname: 'John',
+          lastname: 'Doe',
+          email: 'john.doe@example.com',
+        },
+      },
     },
     deleteContact: {
-      summary: 'Delete Contact Event',
-      value: [
-        {
-          eventId: 714285776,
-          appId: '25681700',
-          occurredAt: 1765043528476,
-          action: 'DELETE',
-          objectType: 'CONTACT',
-          attemptNumber: 0,
-          objectId: '173595202426',
+      summary: 'DELETE Event - Remove Contact',
+      value: {
+        type: 'DELETE',
+        table: 'parkour3',
+        schema: 'public',
+        record: null,
+        old_record: {
+          id: 'john.doe@example.com',
+          firstname: 'John',
+          lastname: 'Doe',
+          email: 'john.doe@example.com',
         },
-      ],
-    },
-    searchContact: {
-      summary: 'Search Contact Event',
-      value: [
-        {
-          eventId: 714285777,
-          appId: '25681700',
-          occurredAt: 1765043528476,
-          action: 'GET',
-          objectType: 'CONTACT',
-          attemptNumber: 0,
-          emailSearch: 'john.doe@example.com',
-        },
-      ],
+      },
     },
   },
 };

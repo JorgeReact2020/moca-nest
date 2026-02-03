@@ -83,7 +83,9 @@ export class HubSpotService {
           hs_object_id: contactId,
         };
 
-        this.logger.log(`Successfully fetched contact ${contact}`);
+        this.logger.log(
+          `Successfully fetched contact ${JSON.stringify(contactData)}`,
+        );
         this.logger.debug(`Contact email: ${contactData.email}`);
         this.logger.debug(
           `Contact ct_moca_id_database: ${contactData.ct_moca_id_database}`,
@@ -452,7 +454,10 @@ export class HubSpotService {
 
     try {
       const response = await this.hubspotClient.crm.contacts.basicApi.create({
-        properties: { ...properties },
+        properties: {
+          ...properties,
+          source_system: 'parkour3', // Loop prevention marker
+        },
       });
 
       this.logger.log(`Successfully created contact with ID: ${response.id}`);
@@ -484,7 +489,12 @@ export class HubSpotService {
     try {
       const response = await this.hubspotClient.crm.contacts.basicApi.update(
         contactId,
-        { properties: { ...properties } },
+        {
+          properties: {
+            ...properties,
+            source_system: 'parkour3', // Loop prevention marker
+          },
+        },
       );
 
       this.logger.log(`Successfully updated contact: ${contactId}`);

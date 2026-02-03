@@ -1,3 +1,4 @@
+import { MocaSignatureGuard } from '@/common/guards/moca-signature.guard';
 import { HubSpotService } from '@modules/hubspot/hubspot.service';
 import { MocaService } from '@modules/moca/moca.service';
 import {
@@ -6,37 +7,65 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
-  ParseArrayPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBody,
+  ApiHeader,
   ApiOperation,
   ApiResponse,
-  ApiBody,
   ApiSecurity,
-  ApiHeader,
+  ApiTags,
 } from '@nestjs/swagger';
-import { MocaSignatureGuard } from '@/common/guards/moca-signature.guard';
 import { LoggerService } from '../../shared/services/logger.service';
-import { MocaWebhookEventDto } from './dto/moca-webhook.dto';
 import {
-  MOCA_SIGNATURE_HEADER,
-  COMMON_RESPONSES,
-  WEBHOOK_SYNC_OPERATION,
-  WEBHOOK_SYNC_BODY,
-  CHECK_MOCA_API_OPERATION,
   CHECK_HUBSPOT_API_OPERATION,
+  CHECK_MOCA_API_OPERATION,
+  COMMON_RESPONSES,
+  MOCA_SIGNATURE_HEADER,
+  WEBHOOK_SYNC_BODY,
+  WEBHOOK_SYNC_OPERATION,
 } from './documentation/swagger-doc';
+import { MocaContactPropertiesDto } from './dto/moca-contact-properties.dto';
+import { SupabaseWebhookDto } from './dto/supabase-webhook.dto';
 
 export type ResponseMocaWebHook = {
   status: boolean;
-  action: string;
+  type: string;
   id?: string;
   date: number;
   message?: string;
 };
+
+/**
+ * Property mapping configuration
+ * Maps Supabase field names to HubSpot field names
+ * Add entries here when field names differ between systems
+ */
+const PROPERTY_MAPPING: Record<string, string> = {
+  id: 'ct_moca_id_database',
+};
+
+/**
+ * Allowed fields to send to HubSpot
+ * Only these fields will be forwarded from Supabase to HubSpot
+ */
+const ALLOWED_FIELDS_FROM_SUPABASE = [
+  'id',
+  'email',
+  'firstname',
+  'lastname',
+  'country',
+  'ct_institution_type',
+  'ct_certification_moca_id',
+  'ct_opt_in_status',
+  'ct_certification_date',
+  'ct_free_training_type',
+  'ct_certification_group',
+  'ct_user_role',
+  'certification_status',
+];
 
 /**
  * Controller for Moca webhook endpoints
@@ -50,7 +79,7 @@ export type ResponseMocaWebHook = {
 export class SyncController {
   private readonly handlers: Record<
     string,
-    (payload: MocaWebhookEventDto) => Promise<ResponseMocaWebHook>
+    (payload: SupabaseWebhookDto) => Promise<ResponseMocaWebHook>
   >;
 
   constructor(
@@ -60,30 +89,84 @@ export class SyncController {
   ) {
     this.logger.setContext('SyncController');
     this.handlers = {
-      POST: this.createContact.bind(this) as (
-        payload: MocaWebhookEventDto,
+      INSERT: this.createContact.bind(this) as (
+        payload: SupabaseWebhookDto,
       ) => Promise<ResponseMocaWebHook>,
-      PATCH: this.updateContact.bind(this) as (
-        payload: MocaWebhookEventDto,
+      UPDATE: this.updateContact.bind(this) as (
+        payload: SupabaseWebhookDto,
       ) => Promise<ResponseMocaWebHook>,
       DELETE: this.deleteContact.bind(this) as (
-        payload: MocaWebhookEventDto,
-      ) => Promise<ResponseMocaWebHook>,
-      GET: this.SearchContactByEmail.bind(this) as (
-        payload: MocaWebhookEventDto,
+        payload: SupabaseWebhookDto,
       ) => Promise<ResponseMocaWebHook>,
     };
   }
 
   /**
-   * Endpoint to receive Moca contact webhooks
+   * Transform Supabase property names to HubSpot property names
+   * @param supabaseProperties - Properties from Supabase with original field names
+   * @returns Transformed properties with HubSpot field names
+   */
+  private mapPropertiesToHubSpot(
+    supabaseProperties: MocaContactPropertiesDto,
+  ): MocaContactPropertiesDto {
+    const hubspotProperties: Partial<MocaContactPropertiesDto> = {};
+
+    for (const [key, value] of Object.entries(supabaseProperties)) {
+      // Only process allowed fields
+      if (!ALLOWED_FIELDS_FROM_SUPABASE.includes(key)) {
+        continue;
+      }
+
+      // Skip undefined or null values
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      // Use mapped name if exists, otherwise use original name
+      const hubspotKey = PROPERTY_MAPPING[key] || key;
+
+      // Convert value to string (HubSpot expects all properties as strings)
+      const stringValue = typeof value === 'string' ? value : String(value);
+
+      hubspotProperties[hubspotKey as keyof MocaContactPropertiesDto] =
+        stringValue;
+    }
+
+    return hubspotProperties as MocaContactPropertiesDto;
+  }
+
+  /**
+   * Compare two contact objects to detect changes
+   * Ignores undefined/null values and only compares defined properties
+   * @param oldData - Previous contact data
+   * @param newData - New contact data
+   * @returns true if changes detected, false otherwise
+   */
+  private hasContactChanges(
+    oldData: Record<string, unknown>,
+    newData: Record<string, unknown>,
+  ): boolean {
+    const keys = Object.keys(newData).filter(
+      (key) =>
+        key !== 'id' && newData[key] !== undefined && newData[key] !== null,
+    );
+
+    return keys.some((key) => {
+      const oldValue = oldData?.[key];
+      const newValue = newData[key];
+      return oldValue !== newValue;
+    });
+  }
+
+  /**
+   * Endpoint to receive Supabase database webhooks
    * POST /moca/sync
    *
    * Protected by MocaSignatureGuard for security
-   * Validates payload structure with MocaWebhookEventDto
-   * Moca sends an array of events
+   * Validates payload structure with SupabaseWebhookDto
+   * Supabase sends a single event per webhook call
    *
-   * @param payload - Array of webhook events from Moca
+   * @param payload - Single webhook event from Supabase
    * @returns Success response
    */
   @ApiOperation(WEBHOOK_SYNC_OPERATION)
@@ -97,61 +180,57 @@ export class SyncController {
   @Post('sync')
   @HttpCode(HttpStatus.OK)
   async handleHubSpotWebhook(
-    @Body(
-      new ParseArrayPipe({
-        items: MocaWebhookEventDto,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-      }),
-    )
-    payload: MocaWebhookEventDto[],
+    @Body() payload: SupabaseWebhookDto,
   ): Promise<ResponseMocaWebHook> {
-    this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
+    this.logger.log(
+      `Received Supabase webhook: ${payload.type} on ${payload.table}`,
+    );
 
-    let response = {} as ResponseMocaWebHook;
+    const handler = this.handlers[payload.type];
 
-    for (const currentPayload of payload) {
-      this.logger.log(
-        `\n\nEVENT: ${currentPayload.eventId} --- ACTION : ${currentPayload.action}`,
+    if (!handler) {
+      this.logger.warn(`Unhandled event type: ${payload.type}`);
+      throw new HttpException(
+        `Event type ${payload.type} is not supported`,
+        HttpStatus.BAD_REQUEST,
       );
-      const handler = this.handlers[currentPayload?.action];
-
-      if (handler) {
-        response = await handler(currentPayload);
-      } else {
-        this.logger.warn(
-          `Unhandled subscription action: ${currentPayload?.action}`,
-        );
-        throw new HttpException('Non supported action', HttpStatus.BAD_REQUEST);
-      }
-      this.logger.log(`END EVENT: ${currentPayload.eventId}`);
     }
+
+    const response = await handler(payload);
+    this.logger.log(`Completed ${payload.type} operation`);
 
     return response;
   }
 
   async createContact(
-    currentPayload: MocaWebhookEventDto,
+    payload: SupabaseWebhookDto,
   ): Promise<ResponseMocaWebHook> {
+    if (!payload.record) {
+      throw new HttpException(
+        'INSERT event must have record data',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const contactData = payload.record;
+
     const isContactValid = this.hubSpotService.validateContactData({
-      firstname: currentPayload.properties.firstname || '',
-      lastname: currentPayload.properties.lastname || '',
-      email: currentPayload.properties.email,
+      firstname: contactData.firstname || '',
+      lastname: contactData.lastname || '',
+      email: contactData.email,
     });
 
     if (!isContactValid) {
-      this.logger.warn(
-        `Invalid contact data: ${JSON.stringify(currentPayload.properties)}`,
-      );
-
+      this.logger.warn(`Invalid contact data: ${JSON.stringify(contactData)}`);
       throw new HttpException(
         'Contact must have at least an email!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
-    const isEmailExisting = await this.hubSpotService.searchContactByEmail(
-      currentPayload.properties.email,
-    );
+
+    const email = contactData.email;
+    const isEmailExisting =
+      await this.hubSpotService.searchContactByEmail(email);
 
     if (isEmailExisting) {
       throw new HttpException(
@@ -160,92 +239,130 @@ export class SyncController {
       );
     }
 
-    const contactIdCreated = await this.hubSpotService.createContact(
-      currentPayload.properties,
-    );
+    // Transform Supabase properties to HubSpot properties
+    const hubspotProperties = this.mapPropertiesToHubSpot(contactData);
+    console.log('Mapped HubSpot Properties:', hubspotProperties);
+
+    const contactIdCreated =
+      await this.hubSpotService.createContact(hubspotProperties);
+    console.log('contactIdCreated', contactIdCreated);
 
     return {
       status: contactIdCreated ? true : false,
-      action: currentPayload?.action,
+      type: payload.type,
       id: contactIdCreated,
       date: Date.now(),
     };
   }
 
   async updateContact(
-    currentPayload: MocaWebhookEventDto,
+    payload: SupabaseWebhookDto,
   ): Promise<ResponseMocaWebHook> {
-    if (!currentPayload.objectId) {
-      this.logger.warn(
-        `Missing objectId in payload: ${JSON.stringify(currentPayload)}`,
-      );
+    if (!payload.record) {
       throw new HttpException(
-        'Contact must have an objectId!',
+        'UPDATE event must have record data',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const newData = payload.record;
+    const oldData = payload.old_record;
+    const email = newData.email;
+
+    if (!email) {
+      this.logger.warn(`Missing email in payload: ${JSON.stringify(newData)}`);
+      throw new HttpException(
+        'Contact must have an email or id!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
-    const isEmailExisting = await this.hubSpotService.getContactById(
-      currentPayload.objectId,
-    );
 
-    if (!isEmailExisting) {
+    // Find contact by email
+    const hubspotContactId =
+      await this.hubSpotService.searchContactByEmail(email);
+
+    if (!hubspotContactId) {
       throw new HttpException(
         'Contact does not exist in HubSpot!',
         HttpStatus.NOT_FOUND,
       );
     }
-    const formattedProperties = {
-      ...currentPayload.properties,
-      email: isEmailExisting.email,
-    };
+
+    // Change detection - only update if something actually changed
+    if (oldData) {
+      const hasChanges = this.hasContactChanges(oldData, newData);
+
+      if (!hasChanges) {
+        this.logger.log(
+          `No relevant changes detected for ${email}, skipping update`,
+        );
+        return {
+          status: true,
+          type: payload.type,
+          message: 'No changes detected',
+          date: Date.now(),
+        };
+      }
+    }
+
+    // TRansform la data de supabase pour la rendre compatible avec hubspot
+    const hubspotProperties = this.mapPropertiesToHubSpot(newData);
 
     const contactUpdated = await this.hubSpotService.updateContact(
-      currentPayload.objectId,
-      formattedProperties,
+      hubspotContactId,
+      hubspotProperties,
     );
 
     return {
       status: contactUpdated ? true : false,
-      action: currentPayload?.action,
+      type: payload.type,
       id: contactUpdated,
       date: Date.now(),
     };
   }
 
   async deleteContact(
-    currentPayload: MocaWebhookEventDto,
+    payload: SupabaseWebhookDto,
   ): Promise<ResponseMocaWebHook> {
-    if (!currentPayload.objectId) {
+    if (!payload.old_record) {
+      throw new HttpException(
+        'DELETE event must have old_record data',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const oldData = payload.old_record;
+    const email = oldData.email;
+
+    if (!email) {
       this.logger.warn(
-        `Missing objectId in payload: ${JSON.stringify(currentPayload)}`,
+        `Missing email in old_record: ${JSON.stringify(oldData)}`,
       );
       throw new HttpException(
-        'Contact must have an objectId for deletion!',
+        'Contact must have an email or id for deletion!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
 
-    this.logger.log(`Deleting contact: ${currentPayload.objectId}`);
+    this.logger.log(`Deleting contact with email: ${email}`);
 
-    const contactExists = await this.hubSpotService.getContactById(
-      currentPayload.objectId,
-    );
+    // Find contact by email
+    const hubspotContactId =
+      await this.hubSpotService.searchContactByEmail(email);
 
-    if (!contactExists) {
+    if (!hubspotContactId) {
       throw new HttpException(
         'Contact does not exist in HubSpot!',
         HttpStatus.NOT_FOUND,
       );
     }
 
-    const deleted = await this.hubSpotService.deleteContact(
-      currentPayload.objectId,
-    );
+    const deleted = await this.hubSpotService.deleteContact(hubspotContactId);
 
     return {
       status: deleted,
-      action: currentPayload?.action,
-      id: currentPayload.objectId,
+      type: payload.type,
+      id: hubspotContactId,
       date: Date.now(),
       message: deleted
         ? 'Contact deleted successfully'
@@ -281,31 +398,6 @@ export class SyncController {
     try {
       const response = await this.hubSpotService.checkHubSpotStatus();
       return { status: response ? 'ok' : 'unavailable' };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Internal server error';
-      this.logger.error('HubSpot API health check failed', errorMessage);
-      throw new HttpException(
-        'HubSpot API is not available',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-  }
-
-  @HttpCode(HttpStatus.OK)
-  async SearchContactByEmail(
-    currentPayload: MocaWebhookEventDto,
-  ): Promise<ResponseMocaWebHook> {
-    try {
-      const response = await this.hubSpotService.searchContactByEmail(
-        currentPayload.emailSearch,
-      );
-      return {
-        status: response ? true : false,
-        action: currentPayload?.action,
-        id: response ? response : undefined,
-        date: Date.now(),
-      };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Internal server error';

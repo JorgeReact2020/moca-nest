@@ -2,7 +2,10 @@ import { Company } from '@companies/company.entity';
 import { Contact } from '@contacts/contact.entity';
 import { Deal } from '@deals/deal.entity';
 import { LineItem } from '@line-items/line-item.entity';
-import { HubSpotContactData, HubSpotService } from '@modules/hubspot/hubspot.service';
+import {
+  HubSpotContactData,
+  HubSpotService,
+} from '@modules/hubspot/hubspot.service';
 import { MocaService } from '@modules/moca/moca.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -266,7 +269,7 @@ export class WebhookService {
       );
     }
 
-    const isAPiMocaUp = this.mocaHealh();
+    const isAPiMocaUp = await this.mocaHealh();
     if (!isAPiMocaUp) {
       this.logger.log(
         `Moca API is down, skipping processing for contact ${event.objectId.toString()}`,
@@ -280,7 +283,7 @@ export class WebhookService {
       return;
     }
 
-    this.syncContactToMoca(hubspotContact);
+    await this.syncContactToMoca(hubspotContact);
     // Step 3: Upsert contact to database
 
     // Step 4: Sync associated companies
@@ -617,7 +620,7 @@ export class WebhookService {
       const mocaUserId = await this.mocaService.syncContact(contact);
 
       // Update contact with mocaUserId, syncedAt timestamp, and success status
-   /*    await this.contactRepository.update(contact.id, {
+      /*    await this.contactRepository.update(contact.id, {
         mocaUserId,
         syncedAt: new Date(),
         syncStatus: true, // Success
@@ -628,7 +631,7 @@ export class WebhookService {
       );
     } catch (error) {
       // Mark sync as failed and update syncedAt to track last attempt
-/*       await this.contactRepository.update(contact.id, {
+      /*       await this.contactRepository.update(contact.id, {
         syncedAt: new Date(),
         syncStatus: false, // Failed
       }); */
@@ -651,7 +654,7 @@ export class WebhookService {
       const isUpAPI = await Promise.resolve(true);
       if (isUpAPI) this.logger.log(`Successfully checked Moca API health`);
       return isUpAPI;
-    } catch (error) {
+    } catch {
       this.logger.log(`Moca API is not up`);
       return false;
     }

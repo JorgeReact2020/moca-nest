@@ -8,13 +8,13 @@ import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
 
 /**
- * Guard to verify HubSpot webhook signatures using SHA-256 (v1)
- * Reference: https://developers.hubspot.com/docs/apps/legacy-apps/authentication/validating-requests
+ * Guard to verify Supabase webhook signatures using HMAC SHA-256
+ * Reference: https://supabase.com/docs/guides/database/webhooks#payload
  *
- * For v1 signatures (webhooks):
- * - Concatenate: clientSecret + requestBody
- * - Hash with SHA-256 (NOT HMAC)
- * - Compare with X-HubSpot-Signature header
+ * For Supabase webhooks:
+ * - Uses x-supabase-signature header
+ * - HMAC SHA-256 verification
+ * - Temporarily bypassed in non-production until secret is configured
  */
 @Injectable()
 export class MocaSignatureGuard implements CanActivate {
@@ -31,7 +31,7 @@ export class MocaSignatureGuard implements CanActivate {
 
     if (!this.webhookSecret) {
       this.logger.warn(
-        'HubSpot webhook secret not configured - signature verification disabled',
+        'Supabase webhook secret not configured - signature verification disabled',
       );
     }
 
@@ -43,7 +43,7 @@ export class MocaSignatureGuard implements CanActivate {
   }
 
   /**
-   * Validate webhook signature (v1)
+   * Validate webhook signature (Supabase)
    * @param context - ExecutionContext containing the request
    * @returns true if signature is valid, throws UnauthorizedException otherwise
    */
@@ -52,31 +52,32 @@ export class MocaSignatureGuard implements CanActivate {
       headers: Record<string, string>;
       body: unknown;
     }>();
-    const signature = request.headers['x-moca-signature'] as string | undefined;
+    const signature = request.headers['x-supabase-signature'] as
+      | string
+      | undefined;
 
-    // Get raw request body as string (not JSON.stringify)
-    // NestJS stores the raw body in request.rawBody if configured
+    // Get raw request body as string
     const requestBody =
       typeof request.body === 'string'
         ? request.body
         : JSON.stringify(request.body);
 
     this.logger.log(
-      '==============Verifying Moca webhook signature==============',
+      '==============Verifying Supabase webhook signature==============',
     );
     this.logger.debug(`Request body: ${requestBody}`);
 
-    // Bypass signature verification if APP_MODE is not 'production'
+    // Bypass signature verification if APP_MODE is not 'production' or secret not configured
     if (this.appMode !== 'production') {
       this.logger.warn(
-        `Signature verification bypassed - APP_MODE is '${this.appMode}'`,
+        `Signature verification bypassed - APP_MODE is '${this.appMode}', secret configured: ${!!this.webhookSecret}`,
       );
       return true;
     }
 
     // Signature header is required
     if (!signature) {
-      this.logger.error('Missing X-Moca-Signature header');
+      this.logger.error('Missing x-supabase-signature header');
       throw new UnauthorizedException('Missing credentials');
     }
 
