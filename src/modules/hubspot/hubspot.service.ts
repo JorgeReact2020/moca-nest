@@ -7,7 +7,6 @@ import {
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
-import { MocaContactPropertiesDto } from '../moca/dto/moca-contact-properties.dto';
 /**
  * Interface for HubSpot contact data
  */
@@ -442,7 +441,7 @@ export class HubSpotService {
    * @param properties - Contact properties (e.g., firstname, lastname, email)
    * @returns Created contact ID
    */
-  async createContact(properties: MocaContactPropertiesDto): Promise<string> {
+  async createContact(properties: Record<string, string>): Promise<string> {
     this.logger.log('Creating new contact in HubSpot');
     this.logger.debug(`Contact properties: ${JSON.stringify(properties)}`);
 
@@ -481,7 +480,7 @@ export class HubSpotService {
    */
   async updateContact(
     contactId: string,
-    properties: MocaContactPropertiesDto,
+    properties: Record<string, string>,
   ): Promise<string> {
     this.logger.log(`Updating contact in HubSpot: ${contactId}`);
     this.logger.debug(`Update properties: ${JSON.stringify(properties)}`);

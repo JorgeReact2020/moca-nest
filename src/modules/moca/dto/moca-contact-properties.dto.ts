@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsDefined, IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 /**
  * Transform empty strings to null
@@ -28,14 +28,22 @@ export class MocaContactPropertiesDto {
   //==========================
   @ApiProperty({
     description: 'Unique identifier from database ex. 454548',
-    required: true,
+    required: false,
   })
-  @Transform(({ value }: { value: number }) => {
-    return String(value);
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === null || value === undefined) return value;
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      return String(value);
+    }
+    return value;
   })
-  @IsInt()
-  @IsDefined()
-  id: number;
+  @IsString()
+  id: string;
   //==========================
 
   @ApiProperty({
@@ -180,16 +188,7 @@ export class MocaContactPropertiesDto {
     'None',
   ])
   ct_user_role: string;
-  //==========================
-  @ApiProperty({
-    description: 'Date they registered',
-    example: '2024-01-01',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  date_they_registered: string;
-  //==========================
+
   @ApiProperty({
     description: 'Certification status',
     example: 'Certified',

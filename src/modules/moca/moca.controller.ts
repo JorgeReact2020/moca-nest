@@ -104,12 +104,12 @@ export class SyncController {
   /**
    * Transform Supabase property names to HubSpot property names
    * @param supabaseProperties - Properties from Supabase with original field names
-   * @returns Transformed properties with HubSpot field names
+   * @returns Transformed properties with HubSpot field names (all values as strings)
    */
   private mapPropertiesToHubSpot(
     supabaseProperties: MocaContactPropertiesDto,
-  ): MocaContactPropertiesDto {
-    const hubspotProperties: Partial<MocaContactPropertiesDto> = {};
+  ): Record<string, string> {
+    const hubspotProperties: Record<string, string> = {};
 
     for (const [key, value] of Object.entries(supabaseProperties)) {
       // Only process allowed fields
@@ -128,11 +128,10 @@ export class SyncController {
       // Convert value to string (HubSpot expects all properties as strings)
       const stringValue = typeof value === 'string' ? value : String(value);
 
-      hubspotProperties[hubspotKey as keyof MocaContactPropertiesDto] =
-        stringValue;
+      hubspotProperties[hubspotKey] = stringValue;
     }
 
-    return hubspotProperties as MocaContactPropertiesDto;
+    return hubspotProperties;
   }
 
   /**
@@ -143,17 +142,19 @@ export class SyncController {
    * @returns true if changes detected, false otherwise
    */
   private hasContactChanges(
-    oldData: Record<string, unknown>,
-    newData: Record<string, unknown>,
+    oldData: MocaContactPropertiesDto | null,
+    newData: MocaContactPropertiesDto,
   ): boolean {
     const keys = Object.keys(newData).filter(
       (key) =>
-        key !== 'id' && newData[key] !== undefined && newData[key] !== null,
+        key !== 'id' &&
+        newData[key as keyof MocaContactPropertiesDto] !== undefined &&
+        newData[key as keyof MocaContactPropertiesDto] !== null,
     );
 
     return keys.some((key) => {
-      const oldValue = oldData?.[key];
-      const newValue = newData[key];
+      const oldValue = oldData?.[key as keyof MocaContactPropertiesDto];
+      const newValue = newData[key as keyof MocaContactPropertiesDto];
       return oldValue !== newValue;
     });
   }
