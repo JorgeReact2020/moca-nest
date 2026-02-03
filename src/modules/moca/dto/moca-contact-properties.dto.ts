@@ -27,21 +27,10 @@ const TransformBooleanToString = () =>
 export class MocaContactPropertiesDto {
   //==========================
   @ApiProperty({
-    description: 'Unique identifier from database ex. 454548',
-    required: false,
+    description: 'Unique identifier from database (primary key)',
+    required: true,
   })
-  @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === null || value === undefined) return value;
-    if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    ) {
-      return String(value);
-    }
-    return value;
-  })
+  @Transform(({ value }: { value: number }) => String(value))
   @IsString()
   id: string;
   //==========================
