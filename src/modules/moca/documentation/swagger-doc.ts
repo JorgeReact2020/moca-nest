@@ -103,10 +103,10 @@ export const WEBHOOK_SYNC_BODY: ApiBodyOptions = {
       summary: 'INSERT Event - Create Contact',
       value: {
         type: 'INSERT',
-        table: 'parkour3',
+        table: 'Profil',
         schema: 'public',
         record: {
-          id: 'john.doe@example.com',
+          id: 45,
           firstname: 'John',
           lastname: 'Doe',
           email: 'john.doe@example.com',
@@ -118,16 +118,16 @@ export const WEBHOOK_SYNC_BODY: ApiBodyOptions = {
       summary: 'UPDATE Event - Update Contact',
       value: {
         type: 'UPDATE',
-        table: 'parkour3',
+        table: 'Profil',
         schema: 'public',
         record: {
-          id: 'john.doe@example.com',
+          id: 45,
           firstname: 'Jane',
           lastname: 'Smith',
           email: 'john.doe@example.com',
         },
         old_record: {
-          id: 'john.doe@example.com',
+          id: 45,
           firstname: 'John',
           lastname: 'Doe',
           email: 'john.doe@example.com',
@@ -138,11 +138,11 @@ export const WEBHOOK_SYNC_BODY: ApiBodyOptions = {
       summary: 'DELETE Event - Remove Contact',
       value: {
         type: 'DELETE',
-        table: 'parkour3',
+        table: 'Profil',
         schema: 'public',
         record: null,
         old_record: {
-          id: 'john.doe@example.com',
+          id: 45,
           firstname: 'John',
           lastname: 'Doe',
           email: 'john.doe@example.com',
