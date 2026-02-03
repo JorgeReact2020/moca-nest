@@ -38,9 +38,8 @@ export class MocaContactPropertiesDto {
   @ApiProperty({
     description: 'Contact email address',
     example: 'john.doe@example.com',
-    required: false,
+    required: true,
   })
-  @IsOptional()
   @IsString()
   email: string;
   //==========================
