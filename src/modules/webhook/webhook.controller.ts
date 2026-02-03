@@ -47,11 +47,8 @@ export class WebhookController {
     this.logger.log(`Received HubSpot webhook with ${payload.length} event(s)`);
     this.logger.debug(`Webhook payload: ${JSON.stringify(payload)}`);
     let processed = 0;
-
     switch (payload[0]?.subscriptionType) {
-      case 'contact.creation':
       case 'contact.propertyChange':
-      case 'contact.deletion':
         processed = await this.webhookService.processContactWebhook(payload);
         this.logger.log('Processing contact webhook event(s)');
         break;

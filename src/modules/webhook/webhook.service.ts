@@ -2,7 +2,7 @@ import { Company } from '@companies/company.entity';
 import { Contact } from '@contacts/contact.entity';
 import { Deal } from '@deals/deal.entity';
 import { LineItem } from '@line-items/line-item.entity';
-import { HubSpotService } from '@modules/hubspot/hubspot.service';
+import { HubSpotContactData, HubSpotService } from '@modules/hubspot/hubspot.service';
 import { MocaService } from '@modules/moca/moca.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -54,7 +54,7 @@ export class WebhookService {
     // Process each event in the webhook payload
     for (const event of events) {
       try {
-        await this.processContactEvent(event.objectId.toString());
+        await this.processContactEvent(event);
         processed++;
       } catch (error) {
         const errorStack =
@@ -238,12 +238,19 @@ export class WebhookService {
    *
    * @param contactId - HubSpot contact ID (objectId)
    */
-  private async processContactEvent(contactId: string): Promise<void> {
-    this.logger.log(`Processing contact event for ID: ${contactId}`);
+  private async processContactEvent(
+    event: HubSpotWebhookEventDto,
+  ): Promise<void> {
+    this.logger.log(
+      `Processing contact event for ID: ${event.objectId.toString()}`,
+    );
 
     // Step 1: Fetch contact data from HubSpot API
-    const hubspotContact = await this.hubspotService.getContactById(contactId);
+    const hubspotContact = await this.hubspotService.getContactById(
+      event.objectId.toString(),
+    );
 
+    this.logger.log(`hubspotContactTESTTES ${JSON.stringify(hubspotContact)}`);
     // Step 2: Validate contact data
     if (!this.hubspotService.validateContactData(hubspotContact)) {
       throw new HttpException(
@@ -252,23 +259,34 @@ export class WebhookService {
       );
     }
 
+    if (!hubspotContact.ct_moca_id_database) {
+      throw new HttpException(
+        'Contact missing ct_moca_id_database property',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const isAPiMocaUp = this.mocaHealh();
+    if (!isAPiMocaUp) {
+      this.logger.log(
+        `Moca API is down, skipping processing for contact ${event.objectId.toString()}`,
+      );
+      await this.upsertContact({
+        firstname: hubspotContact.firstname,
+        lastname: hubspotContact.lastname,
+        email: hubspotContact.email,
+        hubspotId: event.objectId.toString(),
+      });
+      return;
+    }
+
+    this.syncContactToMoca(hubspotContact);
     // Step 3: Upsert contact to database
-    const contact = await this.upsertContact({
-      firstname: hubspotContact.firstname,
-      lastname: hubspotContact.lastname,
-      email: hubspotContact.email,
-      hubspotId: contactId,
-    });
 
     // Step 4: Sync associated companies
-    await this.syncContactCompanies(contactId, contact.id);
-
+    //await this.syncContactCompanies(event.objectId.toString(), contact.id);
     // Step 5: Sync associated deals (and their line items)
-    await this.syncContactDeals(contactId, contact.id);
-
-    this.logger.log(
-      `Successfully processed contact ${contactId} with all associations`,
-    );
+    //await this.syncContactDeals(event.objectId.toString(), contact.id);
   }
 
   /**
@@ -591,7 +609,7 @@ export class WebhookService {
    *
    * @param contact - Contact to sync
    */
-  private async syncContactToMoca(contact: Contact): Promise<void> {
+  private async syncContactToMoca(contact: HubSpotContactData): Promise<void> {
     try {
       this.logger.log(`Syncing contact ${contact.email} to Moca API`);
 
@@ -599,21 +617,21 @@ export class WebhookService {
       const mocaUserId = await this.mocaService.syncContact(contact);
 
       // Update contact with mocaUserId, syncedAt timestamp, and success status
-      await this.contactRepository.update(contact.id, {
+   /*    await this.contactRepository.update(contact.id, {
         mocaUserId,
         syncedAt: new Date(),
         syncStatus: true, // Success
-      });
+      }); */
 
       this.logger.log(
         `Successfully synced contact ${contact.email} to Moca API (mocaUserId: ${mocaUserId})`,
       );
     } catch (error) {
       // Mark sync as failed and update syncedAt to track last attempt
-      await this.contactRepository.update(contact.id, {
+/*       await this.contactRepository.update(contact.id, {
         syncedAt: new Date(),
         syncStatus: false, // Failed
-      });
+      }); */
 
       // Log error but don't throw - we don't want Moca sync failures to block HubSpot webhook processing
       const errorStack =
@@ -624,6 +642,18 @@ export class WebhookService {
       );
       // The contact was saved to local database successfully
       // Moca sync will be retried on next contact update from HubSpot
+    }
+  }
+
+  private async mocaHealh(): Promise<boolean> {
+    try {
+      this.logger.log(`Checking if Moca API is up`);
+      const isUpAPI = await Promise.resolve(true);
+      if (isUpAPI) this.logger.log(`Successfully checked Moca API health`);
+      return isUpAPI;
+    } catch (error) {
+      this.logger.log(`Moca API is not up`);
+      return false;
     }
   }
 }

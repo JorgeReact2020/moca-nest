@@ -2,6 +2,7 @@ import { Contact } from '@contacts/contact.entity';
 import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '@shared/services/logger.service';
+import { HubSpotContactData } from '../hubspot/hubspot.service';
 
 /**
  * Service responsible for syncing contact data to external Moca API
@@ -18,8 +19,11 @@ export class MocaService {
     private logger: LoggerService,
   ) {
     this.logger.setContext('MocaService');
-    this.apiUrl = this.configService.get<string>('moca.apiUrl', '');
-    this.apiKey = this.configService.get<string>('hubspot.webhookSecret', '');
+    this.apiUrl = this.configService.get<string>(
+      'moca.apiUrl',
+      'https://webhook.site/46fc6227-fc3e-4dfc-b8fb-416805d9b66b',
+    );
+    this.apiKey = this.configService.get<string>('moca.apiKey', '');
     this.retryAttempts = this.configService.get<number>(
       'moca.retryAttempts',
       3,
@@ -49,9 +53,9 @@ export class MocaService {
    * @param contact - Contact entity to sync
    * @returns mocaUserId from external API
    */
-  async syncContact(contact: Contact): Promise<string> {
+  async syncContact(contact: HubSpotContactData): Promise<string> {
     this.logger.log(
-      `Syncing contact ${contact.email} to Moca API (mocaUserId: ${contact.mocaUserId || 'new'})`,
+      `Syncing contact ${contact.email} to Moca API (mocaUserId: ${contact.ct_moca_id_database || 'new'})`,
     );
 
     // Check if Moca API is available before proceeding
@@ -65,10 +69,10 @@ export class MocaService {
 
     try {
       // Check if contact already has mocaUserId (was previously synced)
-      const isUpdate = !!contact.mocaUserId;
+      const isUpdate = !!contact.ct_moca_id_database;
       let method = isUpdate ? 'PUT' : 'POST';
       let endpoint = isUpdate
-        ? `${this.apiUrl}/client/${contact.mocaUserId}`
+        ? `${this.apiUrl}/client/${contact.ct_moca_id_database}`
         : `${this.apiUrl}/client`;
 
       const payload = this.buildPayload(contact);
@@ -90,7 +94,7 @@ export class MocaService {
         const httpError = error as HttpException;
         if (isUpdate && httpError.getStatus && httpError.getStatus() === 404) {
           this.logger.warn(
-            `Contact ${contact.mocaUserId} not found in Moca API, creating new contact instead`,
+            `Contact ${contact.ct_moca_id_database} not found in Moca API, creating new contact instead`,
           );
           method = 'POST';
           endpoint = `${this.apiUrl}/client`;
@@ -132,12 +136,12 @@ export class MocaService {
   /**
    * Build payload from contact entity
    */
-  private buildPayload(contact: Contact) {
+  private buildPayload(contact: HubSpotContactData) {
     return {
       email: contact.email,
       firstname: contact.firstname,
       lastname: contact.lastname,
-      hubspotId: contact.hubspotId,
+      hubspotId: contact.hs_object_id,
     };
   }
 

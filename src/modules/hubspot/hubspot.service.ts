@@ -15,6 +15,8 @@ export interface HubSpotContactData {
   firstname: string;
   lastname: string;
   email: string;
+  hs_object_id?: string;
+  ct_moca_id_database?: string;
 }
 
 /**
@@ -70,17 +72,22 @@ export class HubSpotService {
       try {
         const contact = await this.hubspotClient.crm.contacts.basicApi.getById(
           contactId,
-          ['firstname', 'lastname', 'email'],
+          ['firstname', 'lastname', 'email', 'ct_moca_id_database'],
         );
 
         const contactData: HubSpotContactData = {
           firstname: contact.properties.firstname || '',
           lastname: contact.properties.lastname || '',
           email: contact.properties.email || '',
+          ct_moca_id_database: contact.properties.ct_moca_id_database || '',
+          hs_object_id: contactId,
         };
 
-        this.logger.log(`Successfully fetched contact ${contactId}`);
+        this.logger.log(`Successfully fetched contact ${contact}`);
         this.logger.debug(`Contact email: ${contactData.email}`);
+        this.logger.debug(
+          `Contact ct_moca_id_database: ${contactData.ct_moca_id_database}`,
+        );
 
         return contactData;
       } catch (error: unknown) {

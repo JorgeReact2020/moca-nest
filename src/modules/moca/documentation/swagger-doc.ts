@@ -109,7 +109,6 @@ export const WEBHOOK_SYNC_BODY: ApiBodyOptions = {
             firstname: 'John',
             lastname: 'Doe',
             email: 'john.doe@example.com',
-            phone: '+1234567890',
           },
         },
       ],
