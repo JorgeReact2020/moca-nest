@@ -75,7 +75,7 @@ const ALLOWED_FIELDS_FROM_SUPABASE = [
  */
 @ApiTags('Moca-HubSpot Integration')
 @ApiSecurity('moca-signature')
-@Controller('moca')
+@Controller('api/moca')
 @UseGuards(MocaSignatureGuard)
 export class SyncController {
   private readonly handlers: Record<
