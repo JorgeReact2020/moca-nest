@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { LoggerService } from '../../shared/services/logger.service';
+import { InvalidWebhookSignatureError } from '../errors';
 
 /**
  * Guard to verify HubSpot webhook signatures using SHA-256 (v1)
@@ -87,7 +83,7 @@ export class HubSpotSignatureGuard implements CanActivate {
     // Signature header is required
     if (!signature) {
       this.logger.error('Missing X-HubSpot-Signature header');
-      throw new UnauthorizedException('Missing signature header');
+      throw new InvalidWebhookSignatureError('missing');
     }
 
     try {
@@ -107,13 +103,13 @@ export class HubSpotSignatureGuard implements CanActivate {
         this.logger.error('Invalid webhook signature');
         this.logger.error(`Expected: ${expectedSignature}`);
         this.logger.error(`Received: ${signature}`);
-        throw new UnauthorizedException('Invalid signature');
+        throw new InvalidWebhookSignatureError(signature);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.stack : 'Unknown error';
       this.logger.error('Signature verification failed', errorMessage);
-      throw new UnauthorizedException('Signature verification failed');
+      throw new InvalidWebhookSignatureError('verification-failed');
     }
   }
 

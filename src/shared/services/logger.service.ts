@@ -1,19 +1,27 @@
 import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * Custom logger service using Winston with daily file rotation
- * Follows Laravel-style logging pattern
+ * Follows Laravel-style logging pattern with correlation ID support
  */
 @Injectable()
 export class LoggerService implements NestLoggerService {
   private logger: winston.Logger;
   private context?: string;
+  private correlationId?: string;
 
   constructor(private configService: ConfigService) {
     this.initializeLogger();
+  }
+
+  /**
+   * Set correlation ID for subsequent log messages
+   */
+  setCorrelationId(correlationId: string): void {
+    this.correlationId = correlationId;
   }
 
   /**
@@ -48,7 +56,9 @@ export class LoggerService implements NestLoggerService {
           | string
           | Record<string, unknown>
           | undefined;
+        const correlationId = info.correlationId as string | undefined;
 
+        const correlationStr = correlationId ? `[${correlationId}] ` : '';
         const contextStr = context
           ? ` {${typeof context === 'string' ? context : JSON.stringify(context)}}`
           : '';
@@ -56,9 +66,14 @@ export class LoggerService implements NestLoggerService {
         const metaStr =
           Object.keys(info).filter(
             (key) =>
-              !['timestamp', 'level', 'message', 'context', 'stack'].includes(
-                key,
-              ),
+              ![
+                'timestamp',
+                'level',
+                'message',
+                'context',
+                'stack',
+                'correlationId',
+              ].includes(key),
           ).length > 0
             ? ` ${JSON.stringify(
                 Object.fromEntries(
@@ -70,6 +85,7 @@ export class LoggerService implements NestLoggerService {
                         'message',
                         'context',
                         'stack',
+                        'correlationId',
                       ].includes(key),
                   ),
                 ),
@@ -80,7 +96,7 @@ export class LoggerService implements NestLoggerService {
           ? `\n${typeof stack === 'string' ? stack : JSON.stringify(stack)}`
           : '';
 
-        return `[${String(timestamp)}] [${String(level).toUpperCase()}] ${String(message)}${contextStr}${metaStr}${stackStr}`;
+        return `[${String(timestamp)}] ${correlationStr}[${String(level).toUpperCase()}] ${String(message)}${contextStr}${metaStr}${stackStr}`;
       }),
     );
 
@@ -119,7 +135,10 @@ export class LoggerService implements NestLoggerService {
    * Log info level message
    */
   log(message: string, context?: string): void {
-    this.logger.info(message, { context: context || this.context });
+    this.logger.info(message, {
+      context: context || this.context,
+      correlationId: this.correlationId,
+    });
   }
 
   /**
@@ -129,6 +148,7 @@ export class LoggerService implements NestLoggerService {
     this.logger.error(message, {
       context: context || this.context,
       stack: trace,
+      correlationId: this.correlationId,
     });
   }
 
@@ -136,21 +156,30 @@ export class LoggerService implements NestLoggerService {
    * Log warning level message
    */
   warn(message: string, context?: string): void {
-    this.logger.warn(message, { context: context || this.context });
+    this.logger.warn(message, {
+      context: context || this.context,
+      correlationId: this.correlationId,
+    });
   }
 
   /**
    * Log debug level message
    */
   debug(message: string, context?: string): void {
-    this.logger.debug(message, { context: context || this.context });
+    this.logger.debug(message, {
+      context: context || this.context,
+      correlationId: this.correlationId,
+    });
   }
 
   /**
    * Log verbose level message
    */
   verbose(message: string, context?: string): void {
-    this.logger.verbose(message, { context: context || this.context });
+    this.logger.verbose(message, {
+      context: context || this.context,
+      correlationId: this.correlationId,
+    });
   }
 
   /**
@@ -165,6 +194,7 @@ export class LoggerService implements NestLoggerService {
     this.logger.log(level, message, {
       ...meta,
       context: context || this.context,
+      correlationId: this.correlationId,
     });
   }
 
@@ -184,6 +214,7 @@ export class LoggerService implements NestLoggerService {
       url,
       statusCode,
       responseTime,
+      correlationId: this.correlationId,
     });
   }
 }

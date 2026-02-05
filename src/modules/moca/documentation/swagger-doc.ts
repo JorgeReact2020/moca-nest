@@ -37,6 +37,7 @@ export const COMMON_RESPONSES = {
         id: { type: 'string', example: '173595202426' },
         date: { type: 'number', example: 1765043528476 },
         message: { type: 'string', example: 'Contact created successfully' },
+        code: { type: 'number', example: 200 },
       },
     },
   } as ApiResponseOptions,
@@ -44,21 +45,101 @@ export const COMMON_RESPONSES = {
   BAD_REQUEST_400: {
     status: 400,
     description: 'Invalid action or malformed request',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 400 },
+        message: {
+          type: 'string',
+          example: 'Unsupported webhook type: MERGE',
+        },
+        correlationId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        date: {
+          type: 'number',
+          example: 1765043528476,
+        },
+      },
+    },
   } as ApiResponseOptions,
 
   NOT_FOUND_404: {
     status: 404,
     description: 'Contact not found in HubSpot',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 404 },
+        message: {
+          type: 'string',
+          example: 'Contact not found in HubSpot',
+        },
+        correlationId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        date: {
+          type: 'number',
+          example: 1765043528476,
+        },
+      },
+    },
   } as ApiResponseOptions,
 
   CONFLICT_409: {
     status: 409,
     description: 'Email already exists in HubSpot',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 409 },
+        message: {
+          type: 'string',
+          example: 'Contact already exists in HubSpot',
+        },
+        email: {
+          type: 'string',
+          example: 'john.doe@example.com',
+        },
+        errorCode: {
+          type: 'string',
+          example: 'CONTACT_ALREADY_EXISTS',
+        },
+        correlationId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        date: {
+          type: 'number',
+          example: 1765043528476,
+        },
+      },
+    },
   } as ApiResponseOptions,
 
   PRECONDITION_FAILED_412: {
     status: 412,
     description: 'Precondition failed - missing required fields',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 412 },
+        message: {
+          type: 'string',
+          example: 'Email is required for contact operations',
+        },
+        correlationId: {
+          type: 'string',
+          example: '123e4567-e89b-12d3-a456-426614174000',
+        },
+        date: {
+          type: 'number',
+          example: 1765043528476,
+        },
+      },
+    },
   } as ApiResponseOptions,
 
   SERVICE_UNAVAILABLE_503: {

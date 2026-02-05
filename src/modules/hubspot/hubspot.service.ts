@@ -7,6 +7,11 @@ import {
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
+import {
+  ContactAlreadyExistsError,
+  HubSpotApiError,
+} from '../../common/errors';
+import { Retry } from '../../common/decorators';
 /**
  * Interface for HubSpot contact data
  */
@@ -442,7 +447,8 @@ export class HubSpotService {
    * @returns Created contact ID
    */
   async createContact(properties: Record<string, string>): Promise<string> {
-    this.logger.log('Creating new contact in HubSpot');
+    const email = properties.email;
+    this.logger.log(`Creating new contact in HubSpot for email: ${email}`);
     this.logger.debug(`Contact properties: ${JSON.stringify(properties)}`);
 
     this.validateContactData({
@@ -459,14 +465,27 @@ export class HubSpotService {
         },
       });
 
-      this.logger.log(`Successfully created contact with ID: ${response.id}`);
+      this.logger.log(`Successfully created contact with ID: ${response.id} for email: ${email}`);
       return response.id;
     } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to create contact: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorBody = (error as any)?.body;
+
+      // Check if contact already exists (409 Conflict or 400 VALIDATION_ERROR with duplicate)
+      const isDuplicate =
+        errorMessage.includes('409') ||
+        errorBody?.category === 'CONFLICT' ||
+        (errorBody?.category === 'VALIDATION_ERROR' && errorBody?.message?.includes('already has that value'));
+
+      if (isDuplicate) {
+        this.logger.warn(`Contact already exists for email: ${email}`);
+        this.logger.debug(`HubSpot error body: ${JSON.stringify(errorBody)}`);
+        throw new ContactAlreadyExistsError(email);
+      }
+
+      this.logger.error(`Failed to create contact for email ${email}: ${errorMessage}`);
       throw new HttpException(
-        `Failed to create contact in HubSpot. Make sure all properties are valid. ${errorMessage}`,
+        `Failed to create contact: ${errorMessage}`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -478,11 +497,13 @@ export class HubSpotService {
    * @param properties - Contact properties to update
    * @returns Updated contact ID
    */
+  @Retry({ maxAttempts: 3, initialDelay: 1000 })
   async updateContact(
     contactId: string,
     properties: Record<string, string>,
   ): Promise<string> {
-    this.logger.log(`Updating contact in HubSpot: ${contactId}`);
+    const email = properties.email;
+    this.logger.log(`Updating contact in HubSpot: ${contactId}${email ? ` (${email})` : ''}`);
     this.logger.debug(`Update properties: ${JSON.stringify(properties)}`);
 
     try {
@@ -496,26 +517,27 @@ export class HubSpotService {
         },
       );
 
-      this.logger.log(`Successfully updated contact: ${contactId}`);
+      this.logger.log(`Successfully updated contact: ${contactId}${email ? ` (${email})` : ''}`);
       return response.id;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      const errorResponse = error as { response?: { status?: number } };
+
       this.logger.error(
-        `Failed to update contact ${contactId}: ${errorMessage}`,
+        `Failed to update contact ${contactId}${email ? ` (${email})` : ''}: ${errorMessage}`,
       );
 
-      const errorResponse = error as { response?: { status?: number } };
-      if (errorResponse.response?.status === 404) {
-        throw new HttpException(
-          `Contact ${contactId} not found in HubSpot`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
+      const statusCode = errorResponse.response?.status || 500;
+      const retryable = statusCode >= 500 || statusCode === 429;
 
-      throw new HttpException(
-        `Failed to update contact ${contactId}`,
-        HttpStatus.SERVICE_UNAVAILABLE,
+      throw new HubSpotApiError(
+        'updateContact',
+        statusCode,
+        errorMessage,
+        email,
+        contactId,
+        retryable,
       );
     }
   }
@@ -525,6 +547,7 @@ export class HubSpotService {
    * @param email - Email address to search for
    * @returns Contact ID if found, null otherwise
    */
+  @Retry({ maxAttempts: 3, initialDelay: 1000 })
   async searchContactByEmail(email: string): Promise<string | null> {
     this.logger.log(`Searching for contact by email: ${email}`);
 
@@ -574,6 +597,7 @@ export class HubSpotService {
    * @param contactId - HubSpot contact ID to delete
    * @returns true if successfully deleted
    */
+  @Retry({ maxAttempts: 3, initialDelay: 1000 })
   async deleteContact(contactId: string): Promise<boolean> {
     this.logger.log(`Deleting contact from HubSpot: ${contactId}`);
 

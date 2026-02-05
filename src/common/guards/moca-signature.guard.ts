@@ -1,11 +1,7 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerService } from '../../shared/services/logger.service';
+import { InvalidWebhookSignatureError } from '../errors';
 
 /**
  * Guard to verify Supabase webhook signatures using HMAC SHA-256
@@ -78,7 +74,7 @@ export class MocaSignatureGuard implements CanActivate {
     // Signature header is required
     if (!signature) {
       this.logger.error('Missing x-supabase-signature header');
-      throw new UnauthorizedException('Missing credentials');
+      throw new InvalidWebhookSignatureError('missing');
     }
 
     try {
@@ -92,13 +88,13 @@ export class MocaSignatureGuard implements CanActivate {
         this.logger.error('Invalid webhook signature');
         this.logger.error(`Expected: ${this.webhookSecret}`);
         this.logger.error(`Received: ${signature}`);
-        throw new UnauthorizedException('Invalid signature');
+        throw new InvalidWebhookSignatureError(signature);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.stack : 'Unknown error';
       this.logger.error('Signature verification failed', errorMessage);
-      throw new UnauthorizedException('Signature verification failed');
+      throw new InvalidWebhookSignatureError('verification-failed');
     }
   }
 }

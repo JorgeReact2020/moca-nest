@@ -36,6 +36,7 @@ export type ResponseMocaWebHook = {
   id?: string;
   date: number;
   message?: string;
+  code: number;
 };
 
 /**
@@ -214,6 +215,7 @@ export class SyncController {
     }
 
     const contactData = payload.record;
+    const email = contactData.email;
 
     const isContactValid = this.hubSpotService.validateContactData({
       firstname: contactData.firstname || '',
@@ -222,37 +224,32 @@ export class SyncController {
     });
 
     if (!isContactValid) {
-      this.logger.warn(`Invalid contact data: ${JSON.stringify(contactData)}`);
+      this.logger.warn(
+        `Invalid contact data for email ${email}: missing required email field`,
+      );
       throw new HttpException(
         'Contact must have at least an email!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
 
-    const email = contactData.email;
-    const isEmailExisting =
-      await this.hubSpotService.searchContactByEmail(email);
-
-    if (isEmailExisting) {
-      throw new HttpException(
-        'Email already exists in HubSpot!',
-        HttpStatus.CONFLICT,
-      );
-    }
-
     // Transform Supabase properties to HubSpot properties
     const hubspotProperties = this.mapPropertiesToHubSpot(contactData);
-    console.log('Mapped HubSpot Properties:', hubspotProperties);
+    this.logger.log(`Creating contact in HubSpot for email: ${email}`);
 
     const contactIdCreated =
       await this.hubSpotService.createContact(hubspotProperties);
-    console.log('contactIdCreated', contactIdCreated);
+
+    this.logger.log(
+      `Successfully created contact ${contactIdCreated} for email: ${email}`,
+    );
 
     return {
       status: contactIdCreated ? true : false,
       type: payload.type,
       id: contactIdCreated,
       date: Date.now(),
+      code: HttpStatus.OK,
     };
   }
 
@@ -271,18 +268,23 @@ export class SyncController {
     const email = newData.email;
 
     if (!email) {
-      this.logger.warn(`Missing email in payload: ${JSON.stringify(newData)}`);
+      this.logger.warn(
+        `Missing email in UPDATE payload: ${JSON.stringify(newData)}`,
+      );
       throw new HttpException(
         'Contact must have an email or id!',
         HttpStatus.PRECONDITION_FAILED,
       );
     }
 
+    this.logger.log(`Updating contact for email: ${email}`);
+
     // Find contact by email
     const hubspotContactId =
       await this.hubSpotService.searchContactByEmail(email);
 
     if (!hubspotContactId) {
+      this.logger.warn(`Contact not found in HubSpot for email: ${email}`);
       throw new HttpException(
         'Contact does not exist in HubSpot!',
         HttpStatus.NOT_FOUND,
@@ -295,18 +297,19 @@ export class SyncController {
 
       if (!hasChanges) {
         this.logger.log(
-          `No relevant changes detected for ${email}, skipping update`,
+          `No relevant changes detected for email ${email} (HubSpot ID: ${hubspotContactId}), skipping update`,
         );
         return {
           status: true,
           type: payload.type,
           message: 'No changes detected',
           date: Date.now(),
+          code: HttpStatus.OK,
         };
       }
     }
 
-    // TRansform la data de supabase pour la rendre compatible avec hubspot
+    // Transform Supabase properties to HubSpot properties
     const hubspotProperties = this.mapPropertiesToHubSpot(newData);
 
     const contactUpdated = await this.hubSpotService.updateContact(
@@ -314,11 +317,16 @@ export class SyncController {
       hubspotProperties,
     );
 
+    this.logger.log(
+      `Successfully updated contact ${contactUpdated} for email: ${email}`,
+    );
+
     return {
       status: contactUpdated ? true : false,
       type: payload.type,
       id: contactUpdated,
       date: Date.now(),
+      code: HttpStatus.OK,
     };
   }
 
@@ -337,7 +345,7 @@ export class SyncController {
 
     if (!email) {
       this.logger.warn(
-        `Missing email in old_record: ${JSON.stringify(oldData)}`,
+        `Missing email in DELETE old_record: ${JSON.stringify(oldData)}`,
       );
       throw new HttpException(
         'Contact must have an email or id for deletion!',
@@ -352,6 +360,9 @@ export class SyncController {
       await this.hubSpotService.searchContactByEmail(email);
 
     if (!hubspotContactId) {
+      this.logger.warn(
+        `Contact not found in HubSpot for deletion, email: ${email}`,
+      );
       throw new HttpException(
         'Contact does not exist in HubSpot!',
         HttpStatus.NOT_FOUND,
@@ -359,6 +370,10 @@ export class SyncController {
     }
 
     const deleted = await this.hubSpotService.deleteContact(hubspotContactId);
+
+    this.logger.log(
+      `Successfully deleted contact ${hubspotContactId} for email: ${email}`,
+    );
 
     return {
       status: deleted,
@@ -368,6 +383,7 @@ export class SyncController {
       message: deleted
         ? 'Contact deleted successfully'
         : 'Failed to delete contact',
+      code: HttpStatus.OK,
     };
   }
 
