@@ -6,12 +6,12 @@ import {
 } from '@hubspot/api-client/lib/codegen/crm/companies';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { LoggerService } from '../../shared/services/logger.service';
+import { Retry } from '../../common/decorators';
 import {
   ContactAlreadyExistsError,
   HubSpotApiError,
 } from '../../common/errors';
-import { Retry } from '../../common/decorators';
+import { LoggerService } from '../../shared/services/logger.service';
 /**
  * Interface for HubSpot contact data
  */
@@ -465,17 +465,21 @@ export class HubSpotService {
         },
       });
 
-      this.logger.log(`Successfully created contact with ID: ${response.id} for email: ${email}`);
+      this.logger.log(
+        `Successfully created contact with ID: ${response.id} for email: ${email}`,
+      );
       return response.id;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       const errorBody = (error as any)?.body;
 
       // Check if contact already exists (409 Conflict or 400 VALIDATION_ERROR with duplicate)
       const isDuplicate =
         errorMessage.includes('409') ||
         errorBody?.category === 'CONFLICT' ||
-        (errorBody?.category === 'VALIDATION_ERROR' && errorBody?.message?.includes('already has that value'));
+        (errorBody?.category === 'VALIDATION_ERROR' &&
+          errorBody?.message?.includes('already has that value'));
 
       if (isDuplicate) {
         this.logger.warn(`Contact already exists for email: ${email}`);
@@ -483,7 +487,9 @@ export class HubSpotService {
         throw new ContactAlreadyExistsError(email);
       }
 
-      this.logger.error(`Failed to create contact for email ${email}: ${errorMessage}`);
+      this.logger.error(
+        `Failed to create contact for email ${email}: ${errorMessage}`,
+      );
       throw new HttpException(
         `Failed to create contact: ${errorMessage}`,
         HttpStatus.BAD_REQUEST,
@@ -503,7 +509,9 @@ export class HubSpotService {
     properties: Record<string, string>,
   ): Promise<string> {
     const email = properties.email;
-    this.logger.log(`Updating contact in HubSpot: ${contactId}${email ? ` (${email})` : ''}`);
+    this.logger.log(
+      `Updating contact in HubSpot: ${contactId}${email ? ` (${email})` : ''}`,
+    );
     this.logger.debug(`Update properties: ${JSON.stringify(properties)}`);
 
     try {
@@ -517,7 +525,9 @@ export class HubSpotService {
         },
       );
 
-      this.logger.log(`Successfully updated contact: ${contactId}${email ? ` (${email})` : ''}`);
+      this.logger.log(
+        `Successfully updated contact: ${contactId}${email ? ` (${email})` : ''}`,
+      );
       return response.id;
     } catch (error: unknown) {
       const errorMessage =
