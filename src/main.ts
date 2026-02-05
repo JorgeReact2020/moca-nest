@@ -15,7 +15,11 @@ import { LoggerService } from './shared/services/logger.service';
 
 // Polyfill for Node.js crypto in global scope (needed for TypeORM)
 if (!globalThis.crypto) {
-  (globalThis as any).crypto = crypto;
+  Object.defineProperty(globalThis, 'crypto', {
+    value: crypto,
+    writable: true,
+    configurable: true,
+  });
 }
 
 async function bootstrap() {

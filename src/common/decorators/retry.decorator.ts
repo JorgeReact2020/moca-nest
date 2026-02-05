@@ -24,18 +24,25 @@ export function Retry(options: RetryOptions = {}) {
   const config = { ...DEFAULT_OPTIONS, ...options };
 
   return function (
-    target: any,
+    target: unknown,
     propertyKey: string,
     descriptor: PropertyDescriptor,
   ) {
-    const originalMethod = descriptor.value;
+    const originalMethod = descriptor.value as (
+      this: { logger?: { warn: (msg: string) => void } },
+      ...args: unknown[]
+    ) => Promise<unknown>;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (
+      this: { logger?: { warn: (msg: string) => void } },
+      ...args: unknown[]
+    ): Promise<unknown> {
       let lastError: Error | undefined;
       let delay = config.initialDelay;
 
       for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           return await originalMethod.apply(this, args);
         } catch (error) {
           lastError = error as Error;
@@ -72,7 +79,7 @@ export function Retry(options: RetryOptions = {}) {
         }
       }
 
-      throw lastError;
+      throw lastError ?? new Error('Retry failed with unknown error');
     };
 
     return descriptor;

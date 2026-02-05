@@ -472,14 +472,21 @@ export class HubSpotService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      const errorBody = (error as any)?.body;
+
+      // Type guard for HubSpot API error structure
+      interface HubSpotErrorBody {
+        category?: string;
+        message?: string;
+      }
+
+      const errorBody = (error as { body?: HubSpotErrorBody })?.body;
 
       // Check if contact already exists (409 Conflict or 400 VALIDATION_ERROR with duplicate)
       const isDuplicate =
         errorMessage.includes('409') ||
         errorBody?.category === 'CONFLICT' ||
         (errorBody?.category === 'VALIDATION_ERROR' &&
-          errorBody?.message?.includes('already has that value'));
+          errorBody.message?.includes('already has that value'));
 
       if (isDuplicate) {
         this.logger.warn(`Contact already exists for email: ${email}`);
