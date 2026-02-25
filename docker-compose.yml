@@ -4,7 +4,7 @@ services:
     container_name: moca-container
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       NODE_ENV: production
       APP_MODE: ${APP_MODE:-development}
@@ -16,7 +16,7 @@ services:
     volumes:
       - app-logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
       interval: 10s
       timeout: 5s
       retries: 3

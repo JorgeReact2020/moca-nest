@@ -38,6 +38,7 @@ nano .env
 ```
 
 Update with your credentials:
+
 ```
 HUBSPOT_API_KEY=your_hubspot_api_key
 HUBSPOT_WEBHOOK_SECRET=your_webhook_secret
@@ -58,6 +59,7 @@ docker-compose logs -f
 5. **Configure GitHub Secrets**
 
 In your GitHub repository settings, add these secrets:
+
 - `EC2_HOST` - Your EC2 public IP or domain
 - `EC2_USER` - Usually `ec2-user`
 - `EC2_KEY` - Your EC2 private key (PEM file contents)
@@ -65,6 +67,7 @@ In your GitHub repository settings, add these secrets:
 ## Security Group Settings
 
 Make sure your EC2 Security Group allows:
+
 - **Port 22** (SSH) - For GitHub Actions deployment
 - **Port 3000** (HTTP) - For the application
 
@@ -90,12 +93,14 @@ docker exec -it moca-container sh
 ## Troubleshooting
 
 ### Container won't start
+
 ```bash
 # Check logs
 docker-compose logs app
 ```
 
 ### Application crashes
+
 ```bash
 # Check application logs
 docker-compose logs -f app

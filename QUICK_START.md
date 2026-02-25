@@ -3,6 +3,7 @@
 ## What Just Changed?
 
 **Before** (Manual SSH Method):
+
 ```
 You push code → GitHub Actions deploys → You SSH to EC2 → Manually edit .env.production
 ❌ Time consuming
@@ -11,6 +12,7 @@ You push code → GitHub Actions deploys → You SSH to EC2 → Manually edit .e
 ```
 
 **Now** (Automated GitHub Secrets):
+
 ```
 You push code → GitHub Actions deploys → Secrets auto-injected → Done! ✅
 ✅ No SSH needed
@@ -30,7 +32,7 @@ Click **"New repository secret"** for each:
 Secret Name: HUBSPOT_API_KEY
 Value: [Your HubSpot Private App API key]
 
-Secret Name: HUBSPOT_CLIENT_SECRET  
+Secret Name: HUBSPOT_CLIENT_SECRET
 Value: [Your HubSpot Webhook Secret]
 
 Secret Name: MOCA_API_KEY
@@ -83,14 +85,14 @@ docker logs moca-container --tail 20
 
 ## ⚡ Benefits
 
-| Feature | Manual Method | GitHub Secrets |
-|---------|--------------|----------------|
-| Update secrets | SSH + edit file | Update in GitHub UI |
-| Time to update | ~5 minutes | ~30 seconds |
-| Audit trail | None | Full GitHub audit log |
-| Risk of typos | High | Low (copy-paste) |
-| Secret visibility | Visible on server | Masked in logs |
-| Team access | Share SSH key 😱 | GitHub permissions |
+| Feature           | Manual Method     | GitHub Secrets        |
+| ----------------- | ----------------- | --------------------- |
+| Update secrets    | SSH + edit file   | Update in GitHub UI   |
+| Time to update    | ~5 minutes        | ~30 seconds           |
+| Audit trail       | None              | Full GitHub audit log |
+| Risk of typos     | High              | Low (copy-paste)      |
+| Secret visibility | Visible on server | Masked in logs        |
+| Team access       | Share SSH key 😱  | GitHub permissions    |
 
 ---
 
