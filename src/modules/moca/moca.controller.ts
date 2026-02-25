@@ -46,6 +46,15 @@ export type ResponseMocaWebHook = {
  */
 const PROPERTY_MAPPING: Record<string, string> = {
   id: 'ct_moca_id_database',
+  is_certified: 'contact_certified',
+  created_at: 'registration_date',
+  institution: 'ct_institution_type',
+  marketing_opt_in: 'ct_opt_in_status',
+  role: 'ct_user_role',
+  first_name: 'firstname',
+  last_name: 'lastname',
+  profession: 'jobtitle',
+  city: 'city',
 };
 
 /**
@@ -53,19 +62,23 @@ const PROPERTY_MAPPING: Record<string, string> = {
  * Only these fields will be forwarded from Supabase to HubSpot
  */
 const ALLOWED_FIELDS_FROM_SUPABASE = [
-  'id',
-  'email',
-  'firstname',
-  'lastname',
-  'country',
-  'ct_institution_type',
-  'ct_certification_moca_id',
-  'ct_opt_in_status',
+  /*   'ct_certification_moca_id',
   'ct_certification_date',
   'ct_free_training_type',
-  'ct_certification_group',
-  'ct_user_role',
-  'certification_status',
+  'ct_certification_group', */
+
+  'id',
+  'city',
+  'profession', //done
+  'email', //done
+  'last_name', //done
+  'first_name', //done
+  'country', //done
+  'role', //done
+  'marketing_opt_in', //done
+  'institution', //done
+  'is_certified', //done
+  'created_at', //done
 ];
 
 /**
@@ -218,8 +231,8 @@ export class SyncController {
     const email = contactData.email;
 
     const isContactValid = this.hubSpotService.validateContactData({
-      firstname: contactData.firstname || '',
-      lastname: contactData.lastname || '',
+      firstname: contactData.first_name || '',
+      lastname: contactData.last_name || '',
       email: contactData.email,
     });
 

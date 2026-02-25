@@ -23,66 +23,7 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository with PostgreSQL integration.
-
-## Database Setup
-
-This application uses PostgreSQL. Make sure you have PostgreSQL installed and running.
-
-### Local Development
-
-1. Create a database:
-```bash
-createdb moca_nest
-```
-
-2. Create a `.env` file in the root directory (copy from `.env.example`):
-```bash
-cp .env.example .env
-```
-
-3. Update the `.env` file with your PostgreSQL credentials:
-```
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_DATABASE=moca_nest
-```
-
-### Production Deployment (EC2 with Docker Compose)
-
-The application uses Docker Compose to run both the app and PostgreSQL in containers.
-
-1. On your EC2 instance, create a `.env` file:
-```bash
-cp .env.production .env
-```
-
-2. Update the `.env` file with secure credentials:
-```bash
-DB_HOST=postgres
-DB_PORT=5432
-DB_USERNAME=moca_user
-DB_PASSWORD=your_secure_password_here
-DB_DATABASE=moca_nest
-```
-
-3. The GitHub Actions workflow will automatically:
-   - Pull the latest code
-   - Build the Docker image
-   - Start PostgreSQL and the app using Docker Compose
-   - Run health checks
-   - Rollback if deployment fails
-
-4. **First deployment**: After the first deploy, you may want to seed the database:
-```bash
-# SSH into EC2
-ssh your-ec2-instance
-
-# Run seed inside the container
-docker exec -it moca-container npm run seed
-```
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository for HubSpot and Moca integration.
 
 ## Project setup
 
@@ -105,20 +46,14 @@ $ npm run start:prod
 
 ## API Endpoints
 
-### Contacts
+### Health Check
 
-- `GET /contacts` - Get all contacts
-- `GET /contacts/:id` - Get a contact by ID
-- `POST /contacts` - Create a new contact
-  ```json
-  {
-    "firstname": "John",
-    "lastname": "Doe",
-    "email": "john.doe@example.com"
-  }
-  ```
-- `PUT /contacts/:id` - Update a contact
-- `DELETE /contacts/:id` - Delete a contact
+- `GET /` - Health check endpoint
+
+### Webhooks
+
+- `POST /webhook/hubspot` - HubSpot webhook endpoint for contact events
+- `POST /webhook/moca` - Moca webhook endpoint
 
 ## Run tests
 

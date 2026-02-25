@@ -33,20 +33,11 @@ Value: [Your HubSpot Private App API key]
 Secret Name: HUBSPOT_CLIENT_SECRET  
 Value: [Your HubSpot Webhook Secret]
 
-Secret Name: DB_HOST
-Value: postgres
+Secret Name: MOCA_API_KEY
+Value: [Your Moca API key]
 
-Secret Name: DB_PORT
-Value: 5432
-
-Secret Name: DB_USERNAME
-Value: moca_user
-
-Secret Name: DB_PASSWORD
-Value: [Your secure database password]
-
-Secret Name: DB_DATABASE
-Value: moca_db
+Secret Name: APP_ID
+Value: [Your application ID]
 ```
 
 ### 2. Trigger Deployment

@@ -39,15 +39,12 @@ Add each of the following secrets by clicking "New repository secret":
 - Go to Settings → Data Management → Webhooks
 - Copy the "Client Secret" as `HUBSPOT_CLIENT_SECRET`
 
-#### Database Configuration
+#### Moca API Configuration
 
 | Secret Name | Description | Example Value |
 |------------|-------------|---------------|
-| `DB_HOST` | PostgreSQL hostname | `postgres` (for Docker) or `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_USERNAME` | Database username | `moca_user` |
-| `DB_PASSWORD` | Database password | `your_secure_password_here` |
-| `DB_DATABASE` | Database name | `moca_db` |
+| `MOCA_API_KEY` | Your Moca API Key | `your_moca_api_key_here` |
+| `APP_ID` | Your Application ID | `your_app_id_here` |
 
 #### EC2 Configuration (Already Set Up)
 
@@ -66,11 +63,8 @@ After adding all secrets, you should see them listed:
 ```
 ✓ HUBSPOT_API_KEY
 ✓ HUBSPOT_CLIENT_SECRET
-✓ DB_HOST
-✓ DB_PORT
-✓ DB_USERNAME
-✓ DB_PASSWORD
-✓ DB_DATABASE
+✓ MOCA_API_KEY
+✓ APP_ID
 ✓ EC2_HOST
 ✓ EC2_USER
 ✓ EC2_KEY
@@ -99,7 +93,8 @@ After adding all secrets, you should see them listed:
 
   HUBSPOT_API_KEY=<value from GitHub>
   HUBSPOT_CLIENT_SECRET=<value from GitHub>
-  DB_PASSWORD=<value from GitHub>
+  MOCA_API_KEY=<value from GitHub>
+  APP_ID=<value from GitHub>
   # ... etc
 
 - Restarts application with new secrets

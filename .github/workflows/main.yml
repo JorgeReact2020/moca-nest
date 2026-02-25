@@ -36,18 +36,13 @@ jobs:
         env:
           HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
           HUBSPOT_WEBHOOK_SECRET: ${{ secrets.HUBSPOT_WEBHOOK_SECRET }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
           MOCA_API_KEY: ${{ secrets.MOCA_API_KEY }}
           APP_ID: ${{ secrets.APP_ID }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          envs: HUBSPOT_API_KEY,HUBSPOT_WEBHOOK_SECRET,DB_HOST,DB_PORT,DB_USERNAME,DB_PASSWORD,DB_DATABASE,MOCA_API_KEY,APP_ID
+          envs: HUBSPOT_API_KEY,HUBSPOT_WEBHOOK_SECRET,MOCA_API_KEY,APP_ID
           script: |
             cd ~/moca-hubspot
 
@@ -88,13 +83,6 @@ jobs:
             NODE_ENV=production
             PORT=3000
 
-            # Database Configuration
-            DB_HOST=${DB_HOST}
-            DB_PORT=${DB_PORT}
-            DB_USERNAME=${DB_USERNAME}
-            DB_PASSWORD=${DB_PASSWORD}
-            DB_DATABASE=${DB_DATABASE}
-
             # HubSpot Configuration
             HUBSPOT_API_KEY=${HUBSPOT_API_KEY}
             HUBSPOT_WEBHOOK_SECRET=${HUBSPOT_WEBHOOK_SECRET}
@@ -120,7 +108,7 @@ jobs:
 
             # Force remove any lingering containers with the same names
             echo "Removing any lingering containers..."
-            docker rm -f moca-container moca-postgres 2>/dev/null || true
+            docker rm -f moca-container 2>/dev/null || true
 
             # Build and tag image with commit SHA for tracking
             IMAGE_TAG="moca-nest:${{ github.sha }}"
@@ -135,48 +123,21 @@ jobs:
             echo "📊 Container status:"
             $DOCKER_COMPOSE ps
 
-            # Wait for database to be ready
-            echo "Waiting for database to be ready..."
-            sleep 10
-
-            # Ensure database exists (using postgres superuser for admin tasks)
-            echo "📊 Ensuring database exists..."
-            DB_EXISTS=$(docker exec moca-postgres psql -U postgres -lqt | cut -d \| -f 1 | grep -w ${DB_DATABASE} | wc -l)
-
-            if [ "$DB_EXISTS" -eq "0" ]; then
-              echo "⚠️  Database '${DB_DATABASE}' does not exist. Creating it..."
-              docker exec moca-postgres psql -U postgres -c "CREATE DATABASE ${DB_DATABASE};"
-              docker exec moca-postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_DATABASE} TO ${DB_USERNAME};"
-              echo "✅ Database '${DB_DATABASE}' created and permissions granted"
-            fi
-
-            # Check database health
-            echo "Checking database container..."
-            docker logs moca-postgres --tail 20
-
             # Wait for app container to start
             echo "Waiting for application to start..."
-            sleep 15
+            sleep 10
 
             # Show app logs for debugging
             echo "📋 Application logs (last 50 lines):"
             docker logs moca-container --tail 50
 
-            # Check if containers are running
+            # Check if container is running
             APP_RUNNING=$(docker ps --filter "name=moca-container" --filter "status=running" -q)
-            DB_RUNNING=$(docker ps --filter "name=moca-postgres" --filter "status=running" -q)
 
             if [ -z "$APP_RUNNING" ]; then
               echo "❌ Application container is not running!"
               echo "Full container logs:"
               docker logs moca-container
-              $DOCKER_COMPOSE down
-              exit 1
-            fi
-
-            if [ -z "$DB_RUNNING" ]; then
-              echo "❌ Database container is not running!"
-              docker logs moca-postgres
               $DOCKER_COMPOSE down
               exit 1
             fi
@@ -217,8 +178,6 @@ jobs:
               echo "❌ Deployment failed - application is not healthy"
               echo "Full application logs:"
               docker logs moca-container
-              echo "Full database logs:"
-              docker logs moca-postgres
               echo "Rolling back..."
               $DOCKER_COMPOSE down
               exit 1

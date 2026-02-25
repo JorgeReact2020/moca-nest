@@ -1,26 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: moca-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
-      # Allow connections without password for local development
-      # Remove this in production and set a proper password
-      #POSTGRES_HOST_AUTH_METHOD: trust
-    # Commented out for local testing - uncomment if you need external access
-    # ports:
-    #   - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build: .
     container_name: moca-container
@@ -28,21 +6,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE: ${DB_DATABASE}
       NODE_ENV: production
       APP_MODE: ${APP_MODE:-development}
       HUBSPOT_API_KEY: ${HUBSPOT_API_KEY}
       HUBSPOT_WEBHOOK_SECRET: ${HUBSPOT_WEBHOOK_SECRET}
+      MOCA_API_KEY: ${MOCA_API_KEY}
+      APP_ID: ${APP_ID}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - app-logs:/app/logs
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 10s
@@ -50,5 +22,4 @@ services:
       retries: 3
 
 volumes:
-  postgres-data:
   app-logs:

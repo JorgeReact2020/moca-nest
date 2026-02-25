@@ -81,7 +81,7 @@ export class MocaContactPropertiesDto {
   })
   @IsOptional()
   @IsString()
-  firstname: string;
+  first_name: string;
   //==========================
   @ApiProperty({
     description: 'Contact last name',
@@ -90,7 +90,7 @@ export class MocaContactPropertiesDto {
   })
   @IsOptional()
   @IsString()
-  lastname: string;
+  last_name: string;
   //==========================
   @ApiProperty({
     description: "Type de l'institution",
@@ -99,7 +99,7 @@ export class MocaContactPropertiesDto {
   })
   @IsOptional()
   @IsString()
-  ct_institution_type: string;
+  institution: string;
   //==========================
   @ApiProperty({
     description: 'Moca certification ID',
@@ -123,7 +123,7 @@ export class MocaContactPropertiesDto {
   @TransformBooleanToString()
   @IsString()
   @IsIn(['true', 'false'])
-  ct_opt_in_status: string;
+  marketing_opt_in: string;
   //==========================
   @ApiProperty({
     description: 'Certification date',
@@ -133,7 +133,8 @@ export class MocaContactPropertiesDto {
   @IsOptional()
   @IsString()
   ct_certification_date: string;
-  //==========================
+  //==========================  //==========================
+
   @ApiProperty({
     description: 'Free training type',
     example: 'Academic',
@@ -175,7 +176,7 @@ export class MocaContactPropertiesDto {
     'Student',
     'None',
   ])
-  ct_user_role: string;
+  role: string;
 
   @ApiProperty({
     description: 'Certification status',
@@ -185,5 +186,28 @@ export class MocaContactPropertiesDto {
   @IsOptional()
   @TransformEmptyToNull()
   @IsString()
-  certification_status: string;
+  @IsIn(['Certified', 'not certified'])
+  is_certified: string;
+
+  //==========================
+  @ApiProperty({
+    description: 'Profession',
+    example: 'Software Engineer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  profession: string;
+  //==========================
+  //
+  //==========================
+  @ApiProperty({
+    description: 'City',
+    example: 'New York',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  city: string;
+  //==========================
 }
